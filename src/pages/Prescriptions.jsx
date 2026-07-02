@@ -24,7 +24,7 @@ import {
   Divider,
   Grid,
 } from "@mui/material";
-import axios from "axios";
+import api from "../services/api";
 // Icons
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -211,7 +211,7 @@ export default function Prescriptions() {
       const medicineRes = await getMedicines();
       const prescriptionRes = await getPrescriptions();
 
-      setPatients(patientRes.data || patientRes);
+      setPatients(patientRes.data.data || []);
       setDoctors(doctorRes.data || doctorRes);
       setMedicines(medicineRes.data || medicineRes);
       setPrescriptions(prescriptionRes.data || prescriptionRes);
@@ -359,7 +359,7 @@ export default function Prescriptions() {
       const doc = new jsPDF();
 
       const img = new Image();
-      img.src = "/logo.PNG";
+      img.src = "/logo.png";
 
       img.onload = () => {
         // ============================================
@@ -693,9 +693,7 @@ export default function Prescriptions() {
                   setPatientId(value.id);
                   setPatientName(value.name);
 
-                  const res = await axios.get(
-                    `http://localhost:8080/api/visits/active/${value.id}`,
-                  );
+                  const res = await api.get(`/api/visits/active/${value.id}`);
 
                   setPatientVisits(res.data);
                 }}
@@ -1101,27 +1099,24 @@ export default function Prescriptions() {
         maxWidth="md"
         fullWidth
       >
-
         <DialogTitle
-  sx={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  }}
->
-  Prescription Details
-
-  <IconButton
-    onClick={() => {
-      setViewOpen(false);
-      setSelectedPrescription(null);
-    }}
-    size="small"
-  >
-    <CloseIcon />
-  </IconButton>
-</DialogTitle>
-        
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          Prescription Details
+          <IconButton
+            onClick={() => {
+              setViewOpen(false);
+              setSelectedPrescription(null);
+            }}
+            size="small"
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
         <DialogContent>
           <Typography>Patient: {selectedPrescription?.patientName}</Typography>

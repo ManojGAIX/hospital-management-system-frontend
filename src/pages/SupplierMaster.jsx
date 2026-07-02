@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -22,7 +22,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import TablePagination from "@mui/material/TablePagination";
 
-const API = "http://localhost:8080/api/suppliers";
+const API = "/api/suppliers";
 
 export default function SupplierMaster() {
   const [suppliers, setSuppliers] = useState([]);
@@ -48,7 +48,7 @@ export default function SupplierMaster() {
   }, []);
 
   const loadSuppliers = async () => {
-    const res = await axios.get(API);
+    const res = await api.get(API);
     setSuppliers(res.data);
   };
 
@@ -61,9 +61,9 @@ export default function SupplierMaster() {
 
   const handleSubmit = async () => {
     if (editingId) {
-      await axios.put(`${API}/${editingId}`, formData);
+      await api.put(`${API}/${editingId}`, formData);
     } else {
-      await axios.post(API, formData);
+      await api.post(API, formData);
     }
 
     resetForm();
@@ -96,7 +96,7 @@ export default function SupplierMaster() {
   };
 
   const deleteSupplier = async (id) => {
-    await axios.delete(`${API}/${id}`);
+    await api.delete(`${API}/${id}`);
 
     loadSuppliers();
   };

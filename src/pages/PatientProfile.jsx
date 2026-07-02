@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { useParams } from "react-router-dom";
 import {
   Box,
@@ -39,22 +39,20 @@ export default function PatientProfile() {
     loadProfile();
   }, [patientId]);
 
- const loadProfile = async () => {
-  if (!patientId) return;
+  const loadProfile = async () => {
+    if (!patientId) return;
 
-  try {
-    const res = await axios.get(
-      `http://localhost:8080/api/patientprofile/${patientId}`
-    );
+    try {
+      const res = await api.get(`/api/patientprofile/${patientId}`);
 
-    setPatient(res.data.patient);
-    setData(res.data);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+      setPatient(res.data.patient);
+      setData(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [tab, setTab] = useState(0);
 
@@ -75,9 +73,7 @@ export default function PatientProfile() {
     try {
       const clean = search.replace(/\D/g, "");
 
-      const res = await axios.get(
-        `http://localhost:8080/api/patientprofile/${clean}`,
-      );
+      const res = await api.get(`api/patientprofile/${clean}`,);
 
       setPatient(res.data.patient);
       setData(res.data);
@@ -104,13 +100,13 @@ export default function PatientProfile() {
       (v.doctorName || "").toLowerCase().includes(search.toLowerCase()),
   );
 
-  if (loading) {
-    return (
-      <Box p={3}>
-        <Typography>Loading Patient Profile...</Typography>
-      </Box>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <Box p={3}>
+  //       <Typography>Loading Patient Profile...</Typography>
+  //     </Box>
+  //   );
+  // }
 
   // ================= UI =================
   return (
@@ -194,7 +190,7 @@ export default function PatientProfile() {
               variant="contained"
               startIcon={<SearchIcon />}
               onClick={handleSearchPatient}
-              disabled={loading}
+              //    disabled={loading}
               sx={{
                 height: 52,
                 minWidth: 190,
@@ -232,7 +228,7 @@ export default function PatientProfile() {
                 },
               }}
             >
-              {loading ? "Searching..." : "Search Patient"}
+              Search Patient
             </Button>
           </Stack>
         </Stack>
@@ -302,7 +298,9 @@ export default function PatientProfile() {
                   <CardContent>
                     <Typography variant="h6">Patient Details</Typography>
                     <Divider sx={{ my: 1 }} />
-                    <Typography>Name: <strong>{patient?.name}</strong></Typography>
+                    <Typography>
+                      Name: <strong>{patient?.name}</strong>
+                    </Typography>
                     <Typography>Age: {patient?.age}</Typography>
                     <Typography>Gender: {patient?.gender}</Typography>
                     <Typography>Phone: {patient?.phone}</Typography>

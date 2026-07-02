@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -34,7 +34,7 @@ export default function Login() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.post("http://localhost:8080/api/auth/login", {
+      const res = await api.post("/api/auth/login", {
         username,
         password,
       });
@@ -68,7 +68,7 @@ export default function Login() {
       sx={{
         minHeight: "100vh",
         width: "100vw",
-        backgroundImage: "url('/logo44.png')",
+        backgroundImage: "url('/background.png')",
         backgroundSize:
           "100% 100%" /* Prevents cropping and fills screenn precisely */,
         backgroundPosition: "center",
@@ -116,7 +116,7 @@ export default function Login() {
           <Box sx={{ mb: 2 }}>
             <Box
               component="img"
-              src="/logo.PNG"
+              src="/logo.png"
               alt="Hospital Logo"
               sx={{
                 width: {

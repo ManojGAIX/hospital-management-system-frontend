@@ -26,14 +26,13 @@ import DownloadIcon from "@mui/icons-material/Download";
 import PrintIcon from "@mui/icons-material/Print";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import axios from "axios";
+import api from "../services/api";
 
 // Dummy placeholder helper functions to prevent compilation breakage
 // Replace these with your actual import locations if they exist
-const getPatients = () => axios.get("http://localhost:8080/api/patients");
-const getScanReports = () => axios.get("http://localhost:8080/api/scanreports");
-const deleteScanReport = (id) =>
-  axios.delete(`http://localhost:8080/api/scanreports/${id}`);
+const getPatients = () => api.get("/api/patients");
+const getScanReports = () => api.get("/api/scanreports");
+const deleteScanReport = (id) => api.delete(`/api/scanreports/${id}`);
 const formatDateTime = (dateStr) =>
   dateStr ? new Date(dateStr).toLocaleDateString("en-IN") : "-";
 
@@ -68,7 +67,7 @@ export default function ScanReportScreen() {
   const loadPatients = async () => {
     try {
       const res = await getPatients();
-      setPatients(res.data || []);
+      setPatients(res.data.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -85,7 +84,7 @@ export default function ScanReportScreen() {
 
   const loadScanConfigs = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/configs");
+      const res = await api.get("/api/configs");
       const filtered = res.data.filter(
         (c) => c.configKey.includes("SCAN") || c.configKey.includes("XRAY"),
       );
@@ -121,7 +120,7 @@ export default function ScanReportScreen() {
 
     setIsUploading(true);
     try {
-      await axios.post("http://localhost:8080/api/scanreports", formData, {
+      await api.get("/api/scanreports", formData, {
         onUploadProgress: (p) =>
           setUploadProgress(Math.round((p.loaded * 100) / p.total)),
       });
@@ -169,8 +168,8 @@ export default function ScanReportScreen() {
       .pop();
 
     try {
-      const response = await axios.get(
-        `http://localhost:8080/api/scanreports/download/${sanitizedFileName}`,
+      const response = await api.get(
+        `api//api/scanreports/download/${sanitizedFileName}`,
         { responseType: "blob" },
       );
 
@@ -208,8 +207,8 @@ export default function ScanReportScreen() {
       .pop();
 
     try {
-      const response = await axios.get(
-        `http://localhost:8080/api/scanreports/download/${sanitizedFileName}`,
+      const response = await api.get(
+        `api//api/scanreports/download/${sanitizedFileName}`,
         { responseType: "blob" },
       );
 
@@ -250,10 +249,7 @@ export default function ScanReportScreen() {
   const handleViewInline = (fileReference) => {
     if (!fileReference) return alert("No file found");
     const sanitized = fileReference.replace(/\\/g, "/").split("/").pop();
-    window.open(
-      `http://localhost:8080/api/scanreports/download/${sanitized}`,
-      "_blank",
-    );
+    window.open(`/api/scanreports/download/${sanitized}`, "_blank");
   };
 
   const getStatusStyle = (val) => {

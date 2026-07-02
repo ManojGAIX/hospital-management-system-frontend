@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -18,7 +18,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-import hospitalLogo from "/logo.PNG";
+import hospitalLogo from "/logo.png";
 
 export default function PharmacyBillView() {
   const { id } = useParams();
@@ -32,7 +32,7 @@ export default function PharmacyBillView() {
 
   const loadBill = async () => {
     try {
-      const res = await axios.get(`http://localhost:8080/api/pharmacy/${id}`);
+      const res = await api.get(`/api/pharmacy/${id}`);
 
       setSale(res.data.sale);
       setItems(res.data.items || []);

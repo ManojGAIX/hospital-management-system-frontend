@@ -20,7 +20,7 @@ import {
   Divider,
 } from "@mui/material";
 
-import axios from "axios";
+import api from "../services/api";
 
 // Icons
 import EventIcon from "@mui/icons-material/Event";
@@ -94,9 +94,7 @@ export default function Appointments() {
 
   const loadConfigs = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:8080/api/configs/category/OPD",
-      );
+      const res = await api.get("/api/configs/category/OPD",);
 
       setConfigs(res.data);
     } catch (err) {
@@ -149,7 +147,7 @@ export default function Appointments() {
   const loadPatients = async () => {
     try {
       const res = await getPatients();
-      setPatients(res.data);
+      setPatients(res.data.data);
     } catch (err) {
       console.error(err);
     }
@@ -166,7 +164,8 @@ export default function Appointments() {
   };
 
   // ================= GET PATIENT NAME =================
-  const getPatientName = (id) => {
+  const getPatientName = (id, app) => {
+    if (app?.patientName) return app.patientName;
     const patient = patients.find((p) => String(p.id) === String(id));
 
     return patient ? patient.name : "";
@@ -306,7 +305,7 @@ export default function Appointments() {
     const doc = new jsPDF();
 
     const img = new Image();
-    img.src = "/logo.PNG";
+    img.src = "/logo.png";
 
     img.onload = () => {
       // =====================================
@@ -788,7 +787,7 @@ export default function Appointments() {
                     </TableCell>
 
                     <TableCell sx={{ fontWeight: 600 }}>
-                      {getPatientName(app.patientId)}
+                      {getPatientName(app.patientId, app)}
                     </TableCell>
 
                     <TableCell>{app.doctorName}</TableCell>

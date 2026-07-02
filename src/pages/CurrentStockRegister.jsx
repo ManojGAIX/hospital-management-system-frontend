@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -23,7 +23,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function CurrentStockRegister() {
-  const API = "http://localhost:8080/api";
+  const API = "/api";
 
   const [stocks, setStocks] = useState([]);
 
@@ -31,7 +31,7 @@ export default function CurrentStockRegister() {
 
   const loadStock = async () => {
     try {
-      const res = await axios.get(`${API}/stock`);
+      const res = await api.get(`${API}/stock`);
 
       setStocks(res.data);
     } catch (err) {

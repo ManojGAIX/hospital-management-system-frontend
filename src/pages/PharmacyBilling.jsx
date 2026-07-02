@@ -26,7 +26,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import SaveIcon from "@mui/icons-material/Save";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 
-import axios from "axios";
+import api from "../services/api";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -93,7 +93,7 @@ export default function PharmacyBilling() {
 
   const loadPatients = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/patients");
+      const res = await api.get("/api/patients");
 
       setPatients(res.data);
     } catch (err) {
@@ -107,7 +107,7 @@ export default function PharmacyBilling() {
 
   const loadMedicines = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/medicines");
+      const res = await api.get("/api/medicines");
 
       setMedicines(res.data);
     } catch (err) {
@@ -140,8 +140,7 @@ export default function PharmacyBilling() {
       // GET ACTIVE VISIT
       // ==========================================
 
-      const visitRes = await axios.get(
-        `http://localhost:8080/api/visits/active/${patient.id}`,
+      const visitRes = await api.get(`/api/visits/active/${patient.id}`,
       );
 
       if (!visitRes.data || visitRes.data.length === 0) {
@@ -157,8 +156,7 @@ export default function PharmacyBilling() {
       // LOAD PRESCRIPTIONS
       // ==========================================
 
-      const prescriptionRes = await axios.get(
-        `http://localhost:8080/api/prescriptions/visit/${activeVisit.id}`,
+      const prescriptionRes = await api.get(`/api/prescriptions/visit/${activeVisit.id}`,
       );
 
       const prescriptionCart = prescriptionRes.data.map((p) => {
@@ -414,7 +412,9 @@ export default function PharmacyBilling() {
 
   const loadPharmacyInvoice = async (id) => {
     try {
-      const res = await axios.get(`http://localhost:8080/api/pharmacy/${id}`);
+      const res = await api.get(
+        `/api/pharmacy/${id}`,
+      );
 
       const invoice = res.data.invoice;
 

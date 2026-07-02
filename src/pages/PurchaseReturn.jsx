@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -25,7 +25,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import SaveIcon from "@mui/icons-material/Save";
 import UndoIcon from "@mui/icons-material/Undo";
 
-const API = "http://localhost:8080/api";
+const API = "/api";
 
 export default function PurchaseReturn() {
   const [suppliers, setSuppliers] = useState([]);
@@ -49,7 +49,7 @@ export default function PurchaseReturn() {
   });
   const loadSuppliers = async () => {
     try {
-      const res = await axios.get(`${API}/suppliers`);
+      const res = await api.get(`${API}/suppliers`);
 
       setSuppliers(res.data);
     } catch (err) {
@@ -59,7 +59,7 @@ export default function PurchaseReturn() {
 
   const loadGRNs = async () => {
     try {
-      const res = await axios.get(`${API}/pharmacy-purchase`);
+      const res = await api.get(`${API}/pharmacy-purchase`);
 
       setGrns(res.data);
     } catch (err) {
@@ -128,7 +128,7 @@ export default function PurchaseReturn() {
 
   const savePurchaseReturn = async () => {
     try {
-      await axios.post(`${API}/purchase-returns`, {
+      await api.post(`${API}/purchase-returns`, {
         ...formData,
 
         totalAmount,

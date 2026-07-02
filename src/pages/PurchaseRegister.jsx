@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -32,7 +32,7 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 export default function PurchaseRegister() {
-  const API = "http://localhost:8080/api";
+  const API = "/api";
 
   const [purchases, setPurchases] = useState([]);
 
@@ -52,7 +52,7 @@ export default function PurchaseRegister() {
 
   const loadPurchases = async () => {
     try {
-      const res = await axios.get(`${API}/pharmacy-purchase`);
+      const res = await api.get(`${API}/pharmacy-purchase`);
 
       setPurchases(res.data);
     } catch (err) {
@@ -83,9 +83,7 @@ export default function PurchaseRegister() {
 
   const viewItems = async (purchaseId) => {
     try {
-      const res = await axios.get(
-        `${API}/pharmacy-purchase/${purchaseId}/items`,
-      );
+      const res = await api.get(`${API}/pharmacy-purchase/${purchaseId}/items`);
 
       setItems(res.data);
 
@@ -101,7 +99,7 @@ export default function PurchaseRegister() {
     }
 
     try {
-      await axios.delete(`${API}/pharmacy-purchase/${id}`);
+      await api.delete(`${API}/pharmacy-purchase/${id}`);
 
       loadPurchases();
     } catch (err) {
@@ -111,7 +109,7 @@ export default function PurchaseRegister() {
 
   const printGRN = async (purchase) => {
     try {
-      const res = await axios.get(
+      const res = await api.get(
         `${API}/pharmacy-purchase/${purchase.id}/items`,
       );
 

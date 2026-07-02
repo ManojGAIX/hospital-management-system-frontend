@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -39,7 +39,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import HistoryIcon from "@mui/icons-material/History";
 import SaveIcon from "@mui/icons-material/Save";
 
-const API = "http://localhost:8080/api/physio";
+const API = "/api/physio";
 
 export default function PhysioManagement() {
   const [sessions, setSessions] = useState([]);
@@ -107,7 +107,7 @@ export default function PhysioManagement() {
 
   const loadPatients = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/physio/patients");
+      const res = await api.get("/api/physio/patients");
 
       console.log("PATIENT API RESPONSE:", res.data);
 
@@ -119,7 +119,7 @@ export default function PhysioManagement() {
 
   const loadTherapists = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/doctors");
+      const res = await api.get("/api/doctors");
 
       setTherapists(res.data);
     } catch (err) {
@@ -129,7 +129,7 @@ export default function PhysioManagement() {
 
   const loadTherapyTypes = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/configs");
+      const res = await api.get("/api/configs");
 
       const filteredTypes = res.data.filter((c) =>
         c.configKey.startsWith("PHYSIO_"),
@@ -143,7 +143,7 @@ export default function PhysioManagement() {
 
   const loadSessions = async () => {
     try {
-      const res = await axios.get(API);
+      const res = await api.get(API);
       setSessions(res.data);
     } catch (err) {
       console.error(err);
@@ -153,7 +153,7 @@ export default function PhysioManagement() {
 
   const loadDashboard = async () => {
     try {
-      const res = await axios.get(`${API}/dashboard`);
+      const res = await api.get(`${API}/dashboard`);
       console.log("Dashboard Response:", res.data);
       setDashboard(res.data);
     } catch (err) {
@@ -191,10 +191,10 @@ export default function PhysioManagement() {
     try {
       if (selectedId) {
         console.log("Saving:", formData);
-        await axios.put(`${API}/${selectedId}`, formData);
+        await api.put(`${API}/${selectedId}`, formData);
       } else {
         console.log("Saving:", formData);
-        await axios.post(API, formData);
+        await api.post(API, formData);
       }
 
       setOpen(false);
@@ -213,7 +213,7 @@ export default function PhysioManagement() {
 
   const deleteSession = async () => {
     try {
-      await axios.delete(`${API}/${selectedId}`);
+      await api.delete(`${API}/${selectedId}`);
 
       setDeleteOpen(false);
 

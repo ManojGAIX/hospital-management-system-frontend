@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -31,7 +31,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-const API = "http://localhost:8080/api/procedures";
+const API = "/api/procedures";
 
 export default function ProcedureMaster() {
   const [procedures, setProcedures] = useState([]);
@@ -64,7 +64,7 @@ export default function ProcedureMaster() {
 
   const loadProcedures = async () => {
     try {
-      const res = await axios.get(API);
+      const res = await api.get(API);
       setProcedures(res.data);
     } catch (err) {
       console.error(err);
@@ -104,11 +104,11 @@ export default function ProcedureMaster() {
       console.log("formData =", formData);
 
       if (editingId) {
-        await axios.put(`${API}/${editingId}`, formData);
+        await api.put(`${API}/${editingId}`, formData);
 
         showMessage("Procedure Updated");
       } else {
-        await axios.post(API, formData);
+        await api.post(API, formData);
 
         showMessage("Procedure Added");
       }
@@ -125,7 +125,7 @@ export default function ProcedureMaster() {
     if (!window.confirm("Delete Procedure ?")) return;
 
     try {
-      await axios.delete(`${API}/${id}`);
+      await api.delete(`${API}/${id}`);
 
       showMessage("Procedure Deleted");
 

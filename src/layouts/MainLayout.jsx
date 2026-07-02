@@ -9,7 +9,7 @@ import {
   Button,
 } from "@mui/material";
 
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
 
 import LogoutIcon from "@mui/icons-material/Logout";
 
@@ -17,14 +17,18 @@ import Sidebar from "../components/Sidebar";
 import MenuIcon from "@mui/icons-material/Menu";
 import IconButton from "@mui/material/IconButton";
 
-const drawerWidth = 260;
-
 export default function MainLayout() {
   const navigate = useNavigate();
 
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
 
   // ============================================
   // USER DATA FROM LOCAL STORAGE
@@ -109,7 +113,7 @@ export default function MainLayout() {
       subtitle: "Generate invoices and manage payments",
     },
 
-    "/InvoiceHistory": {
+    "/invoice-history": {
       title: "Invoice History",
       subtitle: "Search invoices and History",
     },
@@ -174,6 +178,11 @@ export default function MainLayout() {
       title: "Procedure History",
       subtitle: "View and print procedure bills",
     },
+
+    "/PurchaseReturn": {
+      title: "Purchase Return",
+      subtitle: "Manage pharmacy purchase returns",
+    },
   };
 
   const currentPage = pageTitles[location.pathname] || {
@@ -187,39 +196,34 @@ export default function MainLayout() {
         display: "flex",
         backgroundColor: "#f8fafc",
         minHeight: "100vh",
+        width: "100%",
       }}
     >
-      {/* ============================================
-          SIDEBAR
-      ============================================ */}
-
       <Sidebar open={sidebarOpen} />
 
-      {/* ============================================
-          TOP APPBAR
-      ============================================ */}
-
-      <AppBar
-        position="fixed"
-        elevation={0}
+      <Box
         sx={{
-          width: sidebarOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
-
-          ml: sidebarOpen ? `${drawerWidth}px` : "0px",
-
-          transition: "all 0.3s ease",
-
-          background: "rgba(255,255,255,0.85)",
-
-          backdropFilter: "blur(15px)",
-
-          color: "#0F172A",
-
-          borderBottom: "1px solid #E2E8F0",
-
-          boxShadow: "0 2px 20px rgba(0,0,0,0.04)",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          height: "100vh",
+          overflow: "hidden",
         }}
       >
+        <AppBar
+          position="static"
+          elevation={0}
+          sx={{
+            flexShrink: 0,
+            width: "100%",
+            background: "rgba(255,255,255,0.85)",
+            backdropFilter: "blur(15px)",
+            color: "#0F172A",
+            borderBottom: "1px solid #E2E8F0",
+            boxShadow: "0 2px 20px rgba(0,0,0,0.04)",
+          }}
+        >
         <Toolbar
           sx={{
             justifyContent: "space-between",
@@ -334,24 +338,31 @@ export default function MainLayout() {
             </Button>
           </Box>
         </Toolbar>
-      </AppBar>
+        </AppBar>
 
-      {/* ============================================
-          MAIN CONTENT
-      ============================================ */}
+        {/* ============================================
+            MAIN CONTENT
+        ============================================ */}
 
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: 0,
-          ml: sidebarOpen ? `${drawerWidth}px` : 0,
-          mt: "80px",
-          p: 2,
-          overflow: "auto",
-        }}
-      >
-        <Outlet />
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            width: "100%",
+            minHeight: 0,
+            p: 2,
+            overflow: "auto",
+            boxSizing: "border-box",
+            backgroundColor: "#f8fafc",
+            "&::-webkit-scrollbar": {
+              display: "none",
+            },
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );

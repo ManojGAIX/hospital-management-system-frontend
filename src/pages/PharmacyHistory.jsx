@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -36,7 +36,7 @@ import IconButton from "@mui/material/IconButton";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import hospitalLogo from "/logo.PNG";
+import hospitalLogo from "/logo.png";
 import { useNavigate } from "react-router-dom";
 
 export default function PharmacyHistory() {
@@ -63,7 +63,7 @@ export default function PharmacyHistory() {
 
   const loadHistory = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/pharmacy/history");
+      const res = await api.get("api/pharmacy/history");
 
       setSales(res.data);
     } catch (err) {
@@ -170,9 +170,7 @@ export default function PharmacyHistory() {
 
   const handleGeneratePDF = async (saleId) => {
     try {
-      const res = await axios.get(
-        `http://localhost:8080/api/pharmacy/${saleId}`,
-      );
+      const res = await api.get(`/api/pharmacy/${saleId}`);
 
       const billData = {
         ...res.data.invoice, // ✅ invoice, not sale

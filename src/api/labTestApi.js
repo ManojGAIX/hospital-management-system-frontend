@@ -1,7 +1,6 @@
-import api from "./axiosConfig";
+import api from "../services/api";
 
-const API =
-  "http://localhost:8080/api/labtests";
+const API = "/api/labtests";
 
 export const getLabTests = () =>
   api.get(API);

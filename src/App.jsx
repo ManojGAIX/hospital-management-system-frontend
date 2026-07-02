@@ -9,7 +9,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Doctors from "./pages/Doctors";
-import Patients from "./pages/Patients";
+import Patients from "./pages/Patients/Patients";
 import Appointments from "./pages/Appointments";
 import Billing from "./pages/Billing";
 import Prescriptions from "./pages/Prescriptions";
@@ -41,7 +41,6 @@ import PurchaseReturn from "./pages/PurchaseReturn"
 // ============================================
 
 import MainLayout from "./layouts/MainLayout";
-import ProtectedRoute from "./components/ProtectedRoute";
 import UserMaster from "./pages/UserMaster";
 
 export default function App() {
@@ -58,13 +57,7 @@ export default function App() {
 
         {/* PROTECTED ROUTES */}
 
-        <Route
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
+        <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
 
           <Route path="/doctors" element={<Doctors />} />

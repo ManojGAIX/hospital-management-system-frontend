@@ -1,7 +1,6 @@
-import api from "./axiosConfig";
+import api from "../services/api";
 
-const API =
-  "http://localhost:8080/api/scanreports";
+const API = "/api/scanreports";
 
 export const getReports = () =>
   api.get(API);

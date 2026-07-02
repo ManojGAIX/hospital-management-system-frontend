@@ -20,7 +20,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import SettingsIcon from "@mui/icons-material/Settings";
-import axios from "axios";
+import api from "../services/api";
 
 export default function SystemSettings() {
   const [configs, setConfigs] = useState([]);
@@ -35,7 +35,7 @@ export default function SystemSettings() {
 
   const fetchConfigs = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/configs");
+      const res = await api.get("/api/configs");
       setConfigs(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Fetch failed:", err);
@@ -60,7 +60,7 @@ export default function SystemSettings() {
     };
 
     try {
-      await axios.post("http://localhost:8080/api/configs/save", payload);
+      await api.get("/api/configs/save", payload);
       setNewKey("");
       setNewValue("");
       fetchConfigs();
@@ -72,7 +72,7 @@ export default function SystemSettings() {
   // --- UPDATE VALUE ---
   const handleSave = async (config) => {
     try {
-      await axios.post("http://localhost:8080/api/configs/save", config);
+      await api.get("/api/configs/save", config);
       alert("Updated successfully!");
     } catch (err) {
       alert("Update failed");
@@ -83,7 +83,7 @@ export default function SystemSettings() {
   const handleDelete = async (key) => {
     if (!window.confirm(`Delete ${key}?`)) return;
     try {
-      await axios.delete(`http://localhost:8080/api/configs/${key}`);
+      await api.delete(`/api/configs/${key}`);
       fetchConfigs();
     } catch (err) {
       alert("Delete failed. Check if Delete endpoint exists.");

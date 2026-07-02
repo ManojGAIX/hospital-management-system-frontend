@@ -53,6 +53,7 @@ export default function Dashboard() {
         getAppointments(),
       ]);
 
+      const patients = patientsRes.data.data || [];
       const allAppointments = appointmentsRes.data || [];
 
       const localTodayStr = new Date().toISOString().split("T")[0];
@@ -63,13 +64,15 @@ export default function Dashboard() {
       }).length;
 
       setCounts({
-        patients: patientsRes.data.length,
+        patients: patients.length,
         appointments: allAppointments.length,
         todayAppointments: todayCount,
         billing: 0,
       });
 
-      setPatientsList(patientsRes.data);
+      setPatientsList(patients);
+
+      setRecentAppointments([...allAppointments].reverse().slice(0, 5));
 
       const sorted = [...allAppointments].reverse().slice(0, 5);
       setRecentAppointments(sorted);
@@ -78,9 +81,13 @@ export default function Dashboard() {
     }
   };
 
-  const getPatientName = (id) => {
-    const patient = patientsList.find((p) => p.id === id);
-    return patient ? patient.name : "Unknown Patient";
+  const getPatientName = (id, app) => {
+    if (app?.patientName) return app.patientName;
+    if (!Array.isArray(patientsList)) return "Unknown Patient";
+
+    const patient = patientsList.find((p) => String(p.id) === String(id));
+
+    return patient?.name || "Unknown Patient";
   };
 
   const getBadgeStyles = (status) => {
@@ -332,7 +339,7 @@ export default function Dashboard() {
                   <TableCell sx={{ fontWeight: "500", textAlign: "center" }}>
                     {`PRN${String(app.patientId).padStart(4, "0")}`}
                   </TableCell>
-                  <TableCell>{getPatientName(app.patientId)}</TableCell>
+                  <TableCell>{getPatientName(app.patientId, app)}</TableCell>
                   <TableCell>{app.doctorName || "N/A"}</TableCell>
                   <TableCell>{formatDateTime(app.date)}</TableCell>
                   <TableCell>

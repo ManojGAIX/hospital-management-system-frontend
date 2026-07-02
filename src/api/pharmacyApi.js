@@ -1,6 +1,6 @@
-import api from "./axiosConfig";
+import api from "../services/api";
 
-const API = "http://localhost:8080/api/pharmacy";
+const API = "/api/pharmacy";
 
 export const savePharmacyBill = (data) =>
   api.post(`${API}/save`, data);

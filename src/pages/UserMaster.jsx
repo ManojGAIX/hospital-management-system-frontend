@@ -43,14 +43,14 @@ import Tooltip from "@mui/material/Tooltip";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import SaveIcon from "@mui/icons-material/Save";
 
-import axios from "axios";
+import api from "../services/api";
 
-const api = axios.create({
-  baseURL: "http://localhost:8080/api",
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  },
-});
+// const res = api.create({
+//   baseURL: "/api",
+//   headers: {
+//     Authorization: `Bearer ${localStorage.getItem("token")}`,
+//   },
+// });
 
 export default function UserMaster() {
   const [users, setUsers] = useState([]);
@@ -70,9 +70,10 @@ export default function UserMaster() {
     fetchData();
   }, []);
 
+
   const fetchData = async () => {
     try {
-      const usersRes = await api.get("/users");
+      const usersRes = await api.get("api/users");
 
       setUsers(usersRes.data);
     } catch (e) {
@@ -80,7 +81,7 @@ export default function UserMaster() {
     }
 
     try {
-      const privsRes = await api.get("/privileges");
+      const privsRes = await api.get("api/privileges");
 
       console.log(privsRes.data);
 
@@ -139,10 +140,10 @@ export default function UserMaster() {
     };
 
     try {
-      if (editingId) {
-        await api.put(`/users/${editingId}`, payload);
+      if (editingId) {  
+        await api.put(`api/users/${editingId}`, payload);
       } else {
-        await api.post("/users", payload);
+        await api.post("api/users", payload);
       }
 
       handleClose();
@@ -198,7 +199,7 @@ export default function UserMaster() {
     }
 
     try {
-      await api.delete(`/users/${id}`);
+      await api.delete(`api/users/${id}`);
 
       fetchData();
     } catch (err) {

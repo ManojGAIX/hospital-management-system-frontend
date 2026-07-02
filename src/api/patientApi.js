@@ -1,10 +1,11 @@
-import api from "./axiosConfig";
+import api from "../services/api";
 
-const API_URL = "http://localhost:8080/api/patients";
+const API_URL ="/api/patients";
 
 // GET ALL
-export const getPatients = () => {
-    return api.get(API_URL);
+// patientApi.js
+export const getPatients = async () => {
+  return await api.get("/api/patients");
 };
 
 // GET BY ID

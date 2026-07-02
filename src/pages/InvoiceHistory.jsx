@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -28,7 +28,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import hospitalLogo from "/logo.PNG";
+import hospitalLogo from "/logo.png";
 
 export default function InvoiceHistory() {
   const [invoices, setInvoices] = useState([]);
@@ -50,7 +50,7 @@ export default function InvoiceHistory() {
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:8080/api/bills/history");
+      const res = await api.get("/api/bills/history");
       const rawData = res.data || [];
 
       // SORT: Latest Invoices First (Assumes higher database ID is newer)
@@ -173,8 +173,7 @@ export default function InvoiceHistory() {
       : `Invoice_Ref_${id}.pdf`;
 
     try {
-      const response = await axios.get(
-        `http://localhost:8080/api/bills/download/${id}`,
+      const response = await api.get(`/api/bills/download/${id}`,
         { responseType: "blob" },
       );
 
@@ -214,8 +213,7 @@ export default function InvoiceHistory() {
   const handleGeneratePDF = async (invoiceId) => {
     console.log("invoiceId", invoiceId);
     try {
-      const res = await axios.get(
-        `http://localhost:8080/api/bills/${invoiceId}`,
+      const res = await api.get(`api/bills/${invoiceId}`,
       );
       console.log("invoice res.data", res.data);
       generatePDF(res.data);

@@ -29,10 +29,13 @@ import HistoryIcon from "@mui/icons-material/History";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function Sidebar({ open }) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const goTo = (path) => () => navigate(path);
 
   const [openPatient, setOpenPatient] = useState(true);
   const [openDoctor, setOpenDoctor] = useState(false);
@@ -61,23 +64,19 @@ export default function Sidebar({ open }) {
 
   return (
     <Box
+      component="nav"
       sx={{
         width: open ? 260 : 0,
+        minWidth: open ? 260 : 0,
+        flexShrink: 0,
         overflow: "hidden",
-        transition: "all 0.3s ease",
+        transition: "width 0.3s ease, min-width 0.3s ease",
         height: "100vh",
-        //  background: "linear-gradient(180deg,#002366 0%,#001845 100%)",
         background: "linear-gradient(180deg,#1E3A8A,#1E40AF)",
-        // boxShadow: "4px 0 25px rgba(0,0,0,0.08)",
         color: "#fff",
-        position: "fixed",
-        left: 0,
-        top: 0,
         overflowY: "auto",
-
         scrollbarWidth: "none",
         msOverflowStyle: "none",
-
         "&::-webkit-scrollbar": {
           width: 0,
           display: "none",
@@ -89,7 +88,7 @@ export default function Sidebar({ open }) {
       <Box sx={{ p: 3, textAlign: "center" }}>
         <Box
           component="img"
-          src="/logo.PNG"
+          src="/logo.png"
           alt="Hospital Logo"
           sx={{
             width: 120,
@@ -116,11 +115,7 @@ export default function Sidebar({ open }) {
       <List sx={{ p: 1 }}>
         {/* Dashboard */}
 
-        <ListItemButton
-          component={Link}
-          to="/dashboard"
-          sx={menuStyle("/dashboard")}
-        >
+        <ListItemButton onClick={goTo("/dashboard")} sx={menuStyle("/dashboard")}>
           <ListItemIcon sx={{ color: "#fff" }}>
             <DashboardIcon />
           </ListItemIcon>
@@ -142,22 +137,27 @@ export default function Sidebar({ open }) {
 
         <Collapse in={openPatient}>
           <List component="div" disablePadding>
-            <ListItemButton component={Link} to="/patients" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/patients")}
+              sx={{ ...menuStyle("/patients"), pl: 6 }}
+            >
               <ListItemText primary="Registration" />
             </ListItemButton>
 
-            {/* <ListItemButton component={Link} to="/visits" sx={{ pl: 6 }}>
+            {/* <ListItemButton onClick={goTo("/visits")} sx={{ pl: 6 }}>
               <ListItemText primary="Visits" />
             </ListItemButton> */}
 
-            <ListItemButton component={Link} to="/appointments" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/appointments")}
+              sx={{ ...menuStyle("/appointments"), pl: 6 }}
+            >
               <ListItemText primary="Appointments" />
             </ListItemButton>
 
             <ListItemButton
-              component={Link}
-              to="/PatientProfile"
-              sx={{ pl: 6 }}
+              onClick={goTo("/PatientProfile")}
+              sx={{ ...menuStyle("/PatientProfile"), pl: 6 }}
             >
               <ListItemText primary="Patient Profile" />
             </ListItemButton>
@@ -182,7 +182,10 @@ export default function Sidebar({ open }) {
               <ListItemText primary="Consultation" />
             </ListItemButton> */}
 
-            <ListItemButton component={Link} to="/prescriptions" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/prescriptions")}
+              sx={{ ...menuStyle("/prescriptions"), pl: 6 }}
+            >
               <ListItemText primary="Prescriptions" />
             </ListItemButton>
           </List>
@@ -202,14 +205,16 @@ export default function Sidebar({ open }) {
 
         <Collapse in={openBilling}>
           <List component="div" disablePadding>
-            <ListItemButton component={Link} to="/billing" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/billing")}
+              sx={{ ...menuStyle("/billing"), pl: 6 }}
+            >
               <ListItemText primary="Invoice Billing" />
             </ListItemButton>
 
             <ListItemButton
-              component={Link}
-              to="/invoice-history"
-              sx={{ pl: 6 }}
+              onClick={goTo("/invoice-history")}
+              sx={{ ...menuStyle("/invoice-history"), pl: 6 }}
             >
               <ListItemText primary="Invoice History" />
             </ListItemButton>
@@ -254,9 +259,9 @@ export default function Sidebar({ open }) {
             {/* Procedure Master */}
 
             <ListItemButton
-              component={Link}
-              to="/procedure-master"
+              onClick={goTo("/procedure-master")}
               sx={{
+                ...menuStyle("/procedure-master"),
                 pl: 6,
                 borderRadius: 2,
               }}
@@ -277,9 +282,9 @@ export default function Sidebar({ open }) {
             {/* Procedure Billing */}
 
             <ListItemButton
-              component={Link}
-              to="/procedure-billing"
+              onClick={goTo("/procedure-billing")}
               sx={{
+                ...menuStyle("/procedure-billing"),
                 pl: 6,
                 borderRadius: 2,
               }}
@@ -300,9 +305,9 @@ export default function Sidebar({ open }) {
             {/* Procedure History */}
 
             <ListItemButton
-              component={Link}
-              to="/procedure-history"
+              onClick={goTo("/procedure-history")}
               sx={{
+                ...menuStyle("/procedure-history"),
                 pl: 6,
                 borderRadius: 2,
               }}
@@ -337,17 +342,15 @@ export default function Sidebar({ open }) {
         <Collapse in={openPharmacy}>
           <List component="div" disablePadding>
             <ListItemButton
-              component={Link}
-              to="/PharmacyBilling"
-              sx={{ pl: 6 }}
+              onClick={goTo("/PharmacyBilling")}
+              sx={{ ...menuStyle("/PharmacyBilling"), pl: 6 }}
             >
               <ListItemText primary="Billing" />
             </ListItemButton>
 
             <ListItemButton
-              component={Link}
-              to="/PharmacyHistory"
-              sx={{ pl: 6 }}
+              onClick={goTo("/PharmacyHistory")}
+              sx={{ ...menuStyle("/PharmacyHistory"), pl: 6 }}
             >
               <ListItemText primary="Billing History" />
             </ListItemButton>
@@ -369,19 +372,24 @@ export default function Sidebar({ open }) {
         <Collapse in={openLab}>
           
           <List component="div" disablePadding>
-            <ListItemButton component={Link} to="/labtests" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/labtests")}
+              sx={{ ...menuStyle("/labtests"), pl: 6 }}
+            >
               <ListItemText primary="Lab Tests" />
             </ListItemButton>
 
             <ListItemButton
-              component={Link}
-              to="/LabResultEntry"
-              sx={{ pl: 6 }}
+              onClick={goTo("/LabResultEntry")}
+              sx={{ ...menuStyle("/LabResultEntry"), pl: 6 }}
             >
               <ListItemText primary="Result Entry" />
             </ListItemButton>
 
-            <ListItemButton component={Link} to="/scanreports" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/scanreports")}
+              sx={{ ...menuStyle("/scanreports"), pl: 6 }}
+            >
               <ListItemText primary="Reports" />
             </ListItemButton>
           </List>
@@ -401,36 +409,54 @@ export default function Sidebar({ open }) {
 
         <Collapse in={openInventory}>
           <List component="div" disablePadding>
-            <ListItemButton component={Link} to="/medicines" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/medicines")}
+              sx={{ ...menuStyle("/medicines"), pl: 6 }}
+            >
               <ListItemText primary="Medicines" />
             </ListItemButton>
 
-             <ListItemButton component={Link} to="/SupplierMaster" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/SupplierMaster")}
+              sx={{ ...menuStyle("/SupplierMaster"), pl: 6 }}
+            >
               <ListItemText primary="Suppliers" />
             </ListItemButton>
 
-            <ListItemButton component={Link} to="/PharmacyPurchase" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/PharmacyPurchase")}
+              sx={{ ...menuStyle("/PharmacyPurchase"), pl: 6 }}
+            >
               <ListItemText primary="GRN" />
             </ListItemButton>
 
-            <ListItemButton component={Link} to="/PurchaseRegister" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/PurchaseRegister")}
+              sx={{ ...menuStyle("/PurchaseRegister"), pl: 6 }}
+            >
               <ListItemText primary="Purchase Register" />
             </ListItemButton>
-            
-            <ListItemButton component={Link} to="/CurrentStockRegister" sx={{ pl: 6 }}>
-              <ListItemText primary="CurrentStock Register" />
-            </ListItemButton> 
 
-             <ListItemButton component={Link} to="/PurchaseReturn" sx={{ pl: 6 }}>
+            <ListItemButton
+              onClick={goTo("/CurrentStockRegister")}
+              sx={{ ...menuStyle("/CurrentStockRegister"), pl: 6 }}
+            >
+              <ListItemText primary="CurrentStock Register" />
+            </ListItemButton>
+
+            <ListItemButton
+              onClick={goTo("/PurchaseReturn")}
+              sx={{ ...menuStyle("/PurchaseReturn"), pl: 6 }}
+            >
               <ListItemText primary="Purchase Return" />
-            </ListItemButton> 
+            </ListItemButton>
 
           </List>
         </Collapse>
 
         {/* Standalone Menus */}
 
-        <ListItemButton component={Link} to="/beds" sx={menuStyle("/beds")}>
+        <ListItemButton onClick={goTo("/beds")} sx={menuStyle("/beds")}>
           <ListItemIcon sx={{ color: "#fff" }}>
             <BedIcon />
           </ListItemIcon>
@@ -438,7 +464,7 @@ export default function Sidebar({ open }) {
           <ListItemText primary="Inpatient" />
         </ListItemButton>
 
-        <ListItemButton component={Link} to="/physio" sx={menuStyle("/physio")}>
+        <ListItemButton onClick={goTo("/physio")} sx={menuStyle("/physio")}>
           <ListItemIcon sx={{ color: "#fff" }}>
             <FitnessCenterIcon />
           </ListItemIcon>
@@ -446,11 +472,7 @@ export default function Sidebar({ open }) {
           <ListItemText primary="Physiotherapy" />
         </ListItemButton>
 
-        <ListItemButton
-          component={Link}
-          to="/doctors"
-          sx={menuStyle("/doctors")}
-        >
+        <ListItemButton onClick={goTo("/doctors")} sx={menuStyle("/doctors")}>
           <ListItemIcon sx={{ color: "#fff" }}>
             <LocalHospitalIcon />
           </ListItemIcon>
@@ -459,8 +481,7 @@ export default function Sidebar({ open }) {
         </ListItemButton>
 
         <ListItemButton
-          component={Link}
-          to="/userMaster"
+          onClick={goTo("/userMaster")}
           sx={menuStyle("/userMaster")}
         >
           <ListItemIcon sx={{ color: "#fff" }}>
@@ -470,11 +491,7 @@ export default function Sidebar({ open }) {
           <ListItemText primary="User & Roles" />
         </ListItemButton>
 
-        <ListItemButton
-          component={Link}
-          to="/settings"
-          sx={menuStyle("/settings")}
-        >
+        <ListItemButton onClick={goTo("/settings")} sx={menuStyle("/settings")}>
           <ListItemIcon sx={{ color: "#fff" }}>
             <SettingsIcon />
           </ListItemIcon>

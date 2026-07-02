@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -25,11 +25,11 @@ import SaveIcon from "@mui/icons-material/Save";
 import ScienceIcon from "@mui/icons-material/Science";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import hospitalLogo from "/logo.PNG";
+import hospitalLogo from "/logo.png";
 
 import PrintIcon from "@mui/icons-material/Print";
 
-const API = "http://localhost:8080/api";
+const API = "/api";
 
 export default function LabResultEntry() {
   const [search, setSearch] = useState("");
@@ -54,7 +54,7 @@ export default function LabResultEntry() {
 
   const loadPatients = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/patients");
+      const res = await api.get("/api/patients");
 
       setPatients(res.data);
     } catch (err) {
@@ -82,7 +82,7 @@ export default function LabResultEntry() {
 
       setSelectedPatient(patient);
 
-      const testRes = await axios.get(`${API}/labtests/patient/${patient.id}`);
+      const testRes = await api.get(`${API}/labtests/patient/${patient.id}`);
 
       setTests(testRes.data);
 
@@ -103,7 +103,7 @@ export default function LabResultEntry() {
     try {
       setSelectedTest(test);
 
-      const res = await axios.get(`${API}/labtests/${test.id}/parameters`, {
+      const res = await api.get(`${API}/labtests/${test.id}/parameters`, {
         params: {
           testName: test.testName,
         },
@@ -178,7 +178,7 @@ export default function LabResultEntry() {
 
   const saveResults = async () => {
     try {
-      await axios.post(`${API}/labtests/results`, {
+      await api.post(`${API}/labtests/results`, {
         labTestId: selectedTest.id,
         results: parameters,
       });

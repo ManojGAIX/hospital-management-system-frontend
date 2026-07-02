@@ -21,7 +21,7 @@ import {
   Autocomplete,
   Divider,
 } from "@mui/material";
-import axios from "axios";
+import api from "../services/api";
 
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -61,7 +61,7 @@ export default function LabTests() {
   const loadPatients = async () => {
     try {
       const res = await getPatients();
-      setPatients(res.data || []);
+      setPatients(res.data.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -81,9 +81,7 @@ export default function LabTests() {
 
   const loadConfigs = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:8080/api/configs/category/LAB",
-      );
+      const res = await api.get("/api/configs/category/LAB");
 
       setConfigList(res.data);
     } catch (err) {
@@ -100,9 +98,7 @@ export default function LabTests() {
     setPatientName(capturedName);
 
     try {
-      const response = await axios.get(
-        `http://localhost:8080/api/visits/active/${value}`,
-      );
+      const response = await api.get(`/api/visits/active/${value}`);
       const activeVisits = response.data || [];
       setVisits(activeVisits);
 
@@ -153,7 +149,7 @@ export default function LabTests() {
 
     try {
       // Direct JSON post body upload
-      await axios.post("http://localhost:8080/api/labtests", payload);
+      await api.get("/api/labtests", payload);
       alert("Lab test record added successfully!");
       resetForm();
       loadTests();

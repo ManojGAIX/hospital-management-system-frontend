@@ -49,5 +49,5 @@ export default function ProtectedRoute({
   // RENDER CHILDREN OR OUTLET
   // ============================================
 
-  return children || <Outlet />;
+  return <Outlet />;
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -32,7 +32,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import hospitalLogo from "/logo.PNG";
+import hospitalLogo from "/logo.png";
 
 export default function ProcedureHistory() {
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ export default function ProcedureHistory() {
     try {
       setLoading(true);
 
-      const res = await axios.get("http://localhost:8080/api/procedure-bills");
+      const res = await api.get("/api/procedure-bills");
 
       const sorted = [...res.data].sort((a, b) => b.id - a.id);
 
@@ -171,9 +171,7 @@ export default function ProcedureHistory() {
 
   const handleGeneratePDF = async (billId) => {
     try {
-      const res = await axios.get(
-        `http://localhost:8080/api/procedure-bills/${billId}`,
-      );
+      const res = await api.get(`api//api/procedure-bills/${billId}`);
 
       const billData = {
         ...res.data.bill,

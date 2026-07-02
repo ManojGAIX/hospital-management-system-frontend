@@ -1,6 +1,7 @@
-import api from "./axiosConfig";
+import api from "../services/api";
 
-const API_URL = "http://localhost:8080/api/appointments";
+
+const API_URL = "/api/appointments";
 
 // GET ALL
 

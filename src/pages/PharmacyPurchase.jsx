@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -22,7 +22,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-const API = "http://localhost:8080/api";
+const API = "/api";
 
 export default function PharmacyPurchase() {
   const [suppliers, setSuppliers] = useState([]);
@@ -61,7 +61,7 @@ export default function PharmacyPurchase() {
 
   const loadSuppliers = async () => {
     try {
-      const res = await axios.get(`${API}/suppliers`);
+      const res = await api.get(`${API}/suppliers`);
 
       setSuppliers(res.data);
     } catch (err) {
@@ -71,7 +71,7 @@ export default function PharmacyPurchase() {
 
   const loadMedicines = async () => {
     try {
-      const res = await axios.get(`${API}/medicines`);
+      const res = await api.get(`${API}/medicines`);
 
       setMedicines(res.data);
     } catch (err) {
@@ -213,7 +213,7 @@ export default function PharmacyPurchase() {
 
       console.log("GRN Payload", payload);
 
-      await axios.post("http://localhost:8080/api/pharmacy-purchase", payload);
+      await api.get("/api/pharmacy-purchase", payload);
 
       alert("GRN Saved Successfully");
     } catch (err) {

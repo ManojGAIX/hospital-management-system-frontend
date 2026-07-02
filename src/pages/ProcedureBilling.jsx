@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import {
   Box,
@@ -44,19 +44,18 @@ export default function ProcedureBilling() {
   const [paymentMode, setPaymentMode] = useState("CASH");
 
   const [notification, setNotification] = useState({
-      open: false,
-      message: "",
-      severity: "success",
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const showNotification = (message, severity = "success") => {
+    setNotification({
+      open: true,
+      message,
+      severity,
     });
-  
-    const showNotification = (message, severity = "success") => {
-      setNotification({
-        open: true,
-        message,
-        severity,
-      });
-    };
-  
+  };
 
   useEffect(() => {
     loadPatients();
@@ -64,12 +63,12 @@ export default function ProcedureBilling() {
   }, []);
 
   const loadPatients = async () => {
-    const res = await axios.get("http://localhost:8080/api/patients");
-    setPatients(res.data);
+    const res = await api.get("/api/patients");
+    setPatients(res.data.data || []);
   };
 
   const loadProcedures = async () => {
-    const res = await axios.get("http://localhost:8080/api/procedures");
+    const res = await api.get("/api/procedures");
     setProcedures(res.data);
   };
 
@@ -84,9 +83,7 @@ export default function ProcedureBilling() {
     }
 
     try {
-      const response = await axios.get(
-        `http://localhost:8080/api/visits/active/${value}`,
-      );
+      const response = await api.get(`api//api/visits/active/${value}`);
 
       setVisits(response.data);
 
@@ -171,7 +168,7 @@ export default function ProcedureBilling() {
     };
 
     try {
-      await axios.post("http://localhost:8080/api/procedure-bills", payload);
+      await api.get("/api/procedure-bills", payload);
 
       alert("Procedure Bill Saved");
 
@@ -580,28 +577,28 @@ export default function ProcedureBilling() {
         </Paper>
       </Paper>
 
-        <Snackbar
-              open={notification.open}
-              autoHideDuration={3000}
-              onClose={() =>
-                setNotification({
-                  ...notification,
-                  open: false,
-                })
-              }
-              anchorOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
-            >
-              <Alert
-                severity={notification.severity}
-                variant="filled"
-                sx={{ width: "100%" }}
-              >
-                {notification.message}
-              </Alert>
-            </Snackbar>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={3000}
+        onClose={() =>
+          setNotification({
+            ...notification,
+            open: false,
+          })
+        }
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+      >
+        <Alert
+          severity={notification.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

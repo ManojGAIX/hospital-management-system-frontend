@@ -24,7 +24,7 @@ import AddIcon from "@mui/icons-material/Add";
 import BedIcon from "@mui/icons-material/Bed";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
-import axios from "axios";
+import api from "../services/api";
 
 export default function BedManagement() {
   const [beds, setBeds] = useState([]);
@@ -60,19 +60,19 @@ export default function BedManagement() {
   }, []);
 
   const loadBeds = async () => {
-    const res = await axios.get("http://localhost:8080/api/beds");
+    const res = await api.get("/api/beds");
     setBeds(res.data);
   };
 
   const loadPatients = async () => {
-    const res = await axios.get("http://localhost:8080/api/patients");
+    const res = await api.get("/api/patients");
     setPatients(res.data);
   };
 
   // FETCH MASTER DATABASE CONFIGURATIONS
   const loadPricingConfigurations = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/configs");
+      const res = await api.get("/api/configs");
       const configArray = Array.isArray(res.data) ? res.data : [];
 
       // Reduce system settings configurations array into a clean dictionary
@@ -112,7 +112,7 @@ export default function BedManagement() {
 
   const handleCreateBed = async () => {
     if (!newBed.bedNumber) return alert("Please provide a valid Bed Number");
-    await axios.post("http://localhost:8080/api/beds", newBed);
+    await api.get("/api/beds", newBed);
     setMasterModal(false);
     setNewBed({
       bedNumber: "",
@@ -124,7 +124,7 @@ export default function BedManagement() {
 
   const handleAssignSubmit = async () => {
     if (!assignmentData.patientId) return alert("Please select a patient");
-    await axios.post("http://localhost:8080/api/beds/assign", assignmentData);
+    await api.get("/api/beds/assign", assignmentData);
     setAssignModal(false);
     setAssignmentData({
       patientId: "",
@@ -139,9 +139,7 @@ export default function BedManagement() {
 
   const handleDischarge = async (bedId) => {
     if (window.confirm("Confirm discharge and generate final bill?")) {
-      const res = await axios.post(
-        `http://localhost:8080/api/beds/discharge/${bedId}`,
-      );
+      const res = await api.pot(`/api/beds/discharge/${bedId}`);
       alert(res.data);
       loadBeds();
     }
@@ -172,8 +170,8 @@ export default function BedManagement() {
 
   const loadActiveVisits = async (patientId) => {
     try {
-      const res = await axios.get(
-        `http://localhost:8080/api/visits/active/${patientId}`,
+      const res = await api.get(
+        `/api/visits/active/${patientId}`,
       );
       setVisits(res.data);
 

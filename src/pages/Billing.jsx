@@ -35,10 +35,10 @@ import Tooltip from "@mui/material/Tooltip";
 
 import { useNavigate } from "react-router-dom";
 
-import axios from "axios";
+import api from "../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import hospitalLogo from "/logo.PNG";
+import hospitalLogo from "/logo.png";
 
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
@@ -98,9 +98,7 @@ export default function PatientBilling() {
 
   const loadAdditionalCharges = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:8080/api/configs/category/BILLING",
-      );
+      const res = await api.get("/api/configs/category/BILLING");
 
       setAvailableCharges(res.data || []);
     } catch (err) {
@@ -222,7 +220,7 @@ export default function PatientBilling() {
 
   const loadPatients = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/patients");
+      const res = await api.get("/api/patients");
       setPatients(res.data);
     } catch (err) {
       console.error(err);
@@ -261,9 +259,7 @@ export default function PatientBilling() {
     setSelectedPatient(patient);
 
     try {
-      const res = await axios.get(
-        `http://localhost:8080/api/visits/active/${patient.id}`,
-      );
+      const res = await api.get(`//api/visits/active/${patient.id}`);
 
       setVisits(res.data);
 
@@ -292,8 +288,8 @@ export default function PatientBilling() {
     setLoading(true);
 
     try {
-      const res = await axios.get(
-        `http://localhost:8080/api/bills/fetchDetails/${selectedVisitId}/0`,
+      const res = await api.get(
+        `/api/bills/fetchDetails/${selectedVisitId}/0`,
       );
 
       setBillData({
@@ -329,7 +325,7 @@ export default function PatientBilling() {
     }
 
     try {
-      const res = await axios.post("http://localhost:8080/api/bills/generate", {
+      const res = await api.post("/api/bills/generate", {
         visitId: selectedVisitId,
         bedId: 0,
         additionalCharges,
@@ -834,7 +830,6 @@ export default function PatientBilling() {
     } catch (error) {
       console.error(error);
       showNotification("Failed to generate invoice PDF", "error");
-      
     }
   };
 
@@ -1003,18 +998,22 @@ export default function PatientBilling() {
           }}
         >
           <Typography variant="body2">
-            <strong>Name:</strong> <strong>{selectedPatient?.name || "-"}</strong>
+            <strong>Name:</strong>{" "}
+            <strong>{selectedPatient?.name || "-"}</strong>
           </Typography>
 
           <Typography variant="body2">
             <strong>PRN:</strong>{" "}
-            <strong>{selectedPatient
-              ? `PRN${String(selectedPatient.id).padStart(4, "0")}`
-              : "-"}</strong>
+            <strong>
+              {selectedPatient
+                ? `PRN${String(selectedPatient.id).padStart(4, "0")}`
+                : "-"}
+            </strong>
           </Typography>
 
           <Typography variant="body2">
-            <strong>Visit:</strong><strong> {selectedVisit?.visitNumber || "-"}</strong>
+            <strong>Visit:</strong>
+            <strong> {selectedVisit?.visitNumber || "-"}</strong>
           </Typography>
 
           <Typography variant="body2">
