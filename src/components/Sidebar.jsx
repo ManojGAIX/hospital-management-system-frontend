@@ -31,11 +31,16 @@ import ExpandMore from "@mui/icons-material/ExpandMore";
 
 import { useLocation, useNavigate } from "react-router-dom";
 
-export default function Sidebar({ open }) {
+export default function Sidebar({ open, onItemClick }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const goTo = (path) => () => navigate(path);
+  const goTo = (path) => () => {
+    navigate(path);
+    if (onItemClick) {
+      onItemClick();
+    }
+  };
 
   const [openPatient, setOpenPatient] = useState(true);
   const [openDoctor, setOpenDoctor] = useState(false);
@@ -44,6 +49,7 @@ export default function Sidebar({ open }) {
   const [openLab, setOpenLab] = useState(false);
   const [openInventory, setOpenInventory] = useState(false);
   const [openProcedure, setOpenProcedure] = useState(false);
+  const [openInpatient, setOpenInpatient] = useState(false);
   const menuStyle = (path) => ({
     borderRadius: 2,
     mb: 0.5,
@@ -454,15 +460,35 @@ export default function Sidebar({ open }) {
           </List>
         </Collapse>
 
-        {/* Standalone Menus */}
+        {/* Inpatient Collapsible Menu */}
 
-        <ListItemButton onClick={goTo("/beds")} sx={menuStyle("/beds")}>
+        <ListItemButton onClick={() => setOpenInpatient(!openInpatient)}>
           <ListItemIcon sx={{ color: "#fff" }}>
             <BedIcon />
           </ListItemIcon>
 
           <ListItemText primary="Inpatient" />
+
+          {openInpatient ? <ExpandLess /> : <ExpandMore />}
         </ListItemButton>
+
+        <Collapse in={openInpatient}>
+          <List component="div" disablePadding>
+            <ListItemButton
+              onClick={goTo("/beds")}
+              sx={{ ...menuStyle("/beds"), pl: 6 }}
+            >
+              <ListItemText primary="Beds & Wards" />
+            </ListItemButton>
+
+            <ListItemButton
+              onClick={goTo("/discharge-summary")}
+              sx={{ ...menuStyle("/discharge-summary"), pl: 6 }}
+            >
+              <ListItemText primary="Discharge Summary" />
+            </ListItemButton>
+          </List>
+        </Collapse>
 
         <ListItemButton onClick={goTo("/physio")} sx={menuStyle("/physio")}>
           <ListItemIcon sx={{ color: "#fff" }}>

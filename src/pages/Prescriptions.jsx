@@ -23,6 +23,7 @@ import {
   Autocomplete,
   Divider,
   Grid,
+  InputAdornment,
 } from "@mui/material";
 import api from "../services/api";
 // Icons
@@ -681,6 +682,7 @@ export default function Prescriptions() {
                 sx={{
                   flex: 1,
                   minWidth: 250,
+                  "& .MuiOutlinedInput-root": { borderRadius: "12px" },
                 }}
                 options={patients}
                 getOptionLabel={(option) =>
@@ -688,14 +690,21 @@ export default function Prescriptions() {
                 }
                 value={patients.find((p) => p.id === patientId) || null}
                 onChange={async (event, value) => {
-                  if (!value) return;
+                  if (!value) {
+                    setPatientId("");
+                    setPatientName("");
+                    setPatientVisits([]);
+                    setVisitId("");
+                    setDoctorName("");
+                    return;
+                  }
 
                   setPatientId(value.id);
                   setPatientName(value.name);
 
                   const res = await api.get(`/api/visits/active/${value.id}`);
 
-                  setPatientVisits(res.data);
+                  setPatientVisits(res.data || []);
                 }}
                 renderInput={(params) => (
                   <TextField {...params} label="Patient" fullWidth />
@@ -707,11 +716,17 @@ export default function Prescriptions() {
                 sx={{
                   flex: 1,
                   minWidth: 150,
+                  "& .MuiOutlinedInput-root": { borderRadius: "12px" },
                 }}
                 options={patientVisits}
                 getOptionLabel={(option) => option.visitNumber || ""}
+                value={patientVisits.find((v) => v.id === visitId) || null}
                 onChange={(e, visit) => {
-                  if (!visit) return;
+                  if (!visit) {
+                    setVisitId("");
+                    setDoctorName("");
+                    return;
+                  }
                   console.log(visit);
 
                   setVisitId(visit.id);
@@ -728,6 +743,7 @@ export default function Prescriptions() {
                 fullWidth
                 label="Doctor"
                 value={doctorName}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                 InputProps={{
                   readOnly: true,
                 }}
@@ -750,7 +766,15 @@ export default function Prescriptions() {
                   onChange={(e, value) => {
                     setSelectedMedicine(value);
 
-                    if (!value) return;
+                    if (!value) {
+                      setMedicineForm({
+                        ...medicineForm,
+                        medicineId: "",
+                        medicineName: "",
+                        price: 0,
+                      });
+                      return;
+                    }
 
                     setMedicineForm({
                       ...medicineForm,
@@ -765,6 +789,7 @@ export default function Prescriptions() {
                       <strong>(Stock: {option.stockQuantity || 0})</strong>
                     </li>
                   )}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                   renderInput={(params) => (
                     <TextField {...params} label="Medicine" />
                   )}
@@ -782,6 +807,7 @@ export default function Prescriptions() {
                   value={medicineForm.dosage}
                   label="Dosage Pattern"
                   placeholder="1-0-1"
+                  sx={{ borderRadius: "12px" }}
                   onChange={(e) =>
                     setMedicineForm({
                       ...medicineForm,
@@ -804,6 +830,7 @@ export default function Prescriptions() {
                 type="number"
                 label="Days"
                 value={medicineForm.days}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                 onChange={(e) =>
                   setMedicineForm({
                     ...medicineForm,
@@ -820,6 +847,7 @@ export default function Prescriptions() {
                 <Select
                   value={medicineForm.instructions}
                   label="Instructions"
+                  sx={{ borderRadius: "12px" }}
                   onChange={(e) =>
                     setMedicineForm({
                       ...medicineForm,
@@ -882,9 +910,18 @@ export default function Prescriptions() {
             </Grid>
           </Grid>
 
-          <TableContainer component={Paper} sx={{ mt: 3 }}>
+          <TableContainer component={Paper} sx={{ mt: 3, borderRadius: "12px", border: "1px solid #e0e6ed" }}>
             <Table>
-              <TableHead>
+              <TableHead
+                sx={{
+                  "& .MuiTableCell-head": {
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: "0.95rem",
+                    background: "linear-gradient(90deg, #1E40AF, #3B82F6) !important",
+                  },
+                }}
+              >
                 <TableRow>
                   <TableCell>Medicine</TableCell>
                   <TableCell>Dosage</TableCell>
@@ -930,6 +967,7 @@ export default function Prescriptions() {
               rows={3}
               label="Notes"
               value={notes}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
               onChange={(e) => setNotes(e.target.value)}
             />
           </Box>
@@ -987,10 +1025,22 @@ export default function Prescriptions() {
         <Paper sx={{ p: 2 }}>
           <TextField
             fullWidth
-            label="Search Patient"
+            placeholder="Search Patient Name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "12px",
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
           />
 
           <TableContainer
@@ -1000,36 +1050,26 @@ export default function Prescriptions() {
             <Table size="small">
               <TableHead
                 sx={{
-                  background: "linear-gradient(90deg,#1E40AF,#3B82F6)",
+                  "& .MuiTableCell-head": {
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: "0.95rem",
+                    background: "linear-gradient(90deg, #1E40AF, #3B82F6) !important",
+                  },
                 }}
               >
                 <TableRow>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
-                    ID
-                  </TableCell>
+                  <TableCell>ID</TableCell>
 
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
-                    Patient
-                  </TableCell>
+                  <TableCell>Patient</TableCell>
 
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
-                    Doctor
-                  </TableCell>
+                  <TableCell>Doctor</TableCell>
 
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
-                    Date
-                  </TableCell>
+                  <TableCell>Date</TableCell>
 
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
-                    Medicines
-                  </TableCell>
+                  <TableCell>Medicines</TableCell>
 
-                  <TableCell
-                    sx={{ color: "#fff", fontWeight: "bold" }}
-                    align="center"
-                  >
-                    Actions
-                  </TableCell>
+                  <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
 
@@ -1094,11 +1134,14 @@ export default function Prescriptions() {
       )}
 
       <Dialog
-        open={viewOpen}
-        onClose={() => setViewOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
+         open={viewOpen}
+         onClose={() => setViewOpen(false)}
+         maxWidth="md"
+         fullWidth
+         PaperProps={{
+           sx: { borderRadius: "20px", p: 1 }
+         }}
+       >
         <DialogTitle
           sx={{
             display: "flex",
@@ -1127,9 +1170,18 @@ export default function Prescriptions() {
             Date: {selectedPrescription?.prescriptionDate}
           </Typography>
 
-          <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <TableContainer component={Paper} sx={{ mt: 2, borderRadius: "12px", border: "1px solid #e0e6ed" }}>
             <Table size="small">
-              <TableHead>
+              <TableHead
+                sx={{
+                  "& .MuiTableCell-head": {
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: "0.95rem",
+                    background: "linear-gradient(90deg, #1E40AF, #3B82F6) !important",
+                  },
+                }}
+              >
                 <TableRow>
                   <TableCell>Medicine</TableCell>
 
@@ -1160,11 +1212,14 @@ export default function Prescriptions() {
       </Dialog>
 
       <Dialog
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
+         open={editOpen}
+         onClose={() => setEditOpen(false)}
+         maxWidth="lg"
+         fullWidth
+         PaperProps={{
+           sx: { borderRadius: "20px", p: 1 }
+         }}
+       >
         <DialogTitle
           sx={{
             display: "flex",
@@ -1224,7 +1279,7 @@ export default function Prescriptions() {
 
           {/* ADD MEDICINE SECTION */}
 
-          <Paper sx={{ p: 2, mt: 3, mb: 2 }}>
+          <Paper sx={{ p: 2, mt: 3, mb: 2, borderRadius: "12px", border: "1px solid #e2e8f0" }}>
             <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
               Add Medicine
             </Typography>
@@ -1237,6 +1292,7 @@ export default function Prescriptions() {
                     getOptionLabel={(option) => option.medicineName || ""}
                     value={editSelectedMedicine}
                     onChange={(e, value) => setEditSelectedMedicine(value)}
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                     renderInput={(params) => (
                       <TextField {...params} label="Medicine" />
                     )}
@@ -1249,7 +1305,7 @@ export default function Prescriptions() {
                   fullWidth
                   variant="contained"
                   onClick={addMedicineToEdit}
-                  sx={{ height: 56 }}
+                  sx={{ height: 56, borderRadius: "12px" }}
                 >
                   Add Medicine
                 </Button>
@@ -1257,9 +1313,18 @@ export default function Prescriptions() {
             </Grid>
           </Paper>
 
-          <TableContainer component={Paper} sx={{ mt: 3 }}>
+          <TableContainer component={Paper} sx={{ mt: 3, borderRadius: "12px", border: "1px solid #e0e6ed" }}>
             <Table>
-              <TableHead>
+              <TableHead
+                sx={{
+                  "& .MuiTableCell-head": {
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: "0.95rem",
+                    background: "linear-gradient(90deg, #1E40AF, #3B82F6) !important",
+                  },
+                }}
+              >
                 <TableRow>
                   <TableCell>Medicine</TableCell>
 
@@ -1280,7 +1345,9 @@ export default function Prescriptions() {
 
                     <TableCell>
                       <TextField
+                        size="small"
                         value={item.dosage}
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                         onChange={(e) =>
                           handleEditMedicineChange(
                             index,
@@ -1293,8 +1360,10 @@ export default function Prescriptions() {
 
                     <TableCell>
                       <TextField
+                        size="small"
                         type="number"
                         value={item.days}
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                         onChange={(e) =>
                           handleEditMedicineChange(
                             index,
@@ -1307,7 +1376,9 @@ export default function Prescriptions() {
 
                     <TableCell>
                       <TextField
+                        size="small"
                         value={item.instructions}
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                         onChange={(e) =>
                           handleEditMedicineChange(
                             index,

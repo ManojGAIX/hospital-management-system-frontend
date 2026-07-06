@@ -60,10 +60,11 @@ export default function SystemSettings() {
     };
 
     try {
-      await api.get("/api/configs/save", payload);
+      await api.post("/api/configs/save", payload);
       setNewKey("");
       setNewValue("");
       fetchConfigs();
+      alert("Saved successfully!");
     } catch (err) {
       alert("Error adding key");
     }
@@ -72,7 +73,7 @@ export default function SystemSettings() {
   // --- UPDATE VALUE ---
   const handleSave = async (config) => {
     try {
-      await api.get("/api/configs/save", config);
+      await api.post("/api/configs/save", config);
       alert("Updated successfully!");
     } catch (err) {
       alert("Update failed");

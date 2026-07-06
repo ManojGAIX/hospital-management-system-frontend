@@ -83,7 +83,7 @@ export default function ProcedureBilling() {
     }
 
     try {
-      const response = await api.get(`api//api/visits/active/${value}`);
+      const response = await api.get(`/api/visits/active/${value}`);
 
       setVisits(response.data);
 
@@ -168,7 +168,7 @@ export default function ProcedureBilling() {
     };
 
     try {
-      await api.get("/api/procedure-bills", payload);
+      await api.post("/api/procedure-bills", payload);
 
       alert("Procedure Bill Saved");
 

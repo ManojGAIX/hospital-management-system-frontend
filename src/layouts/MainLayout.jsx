@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import {
   Box,
@@ -23,6 +23,10 @@ export default function MainLayout() {
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   const token = localStorage.getItem("token");
 
@@ -183,6 +187,11 @@ export default function MainLayout() {
       title: "Purchase Return",
       subtitle: "Manage pharmacy purchase returns",
     },
+
+    "/discharge-summary": {
+      title: "Discharge Summary",
+      subtitle: "Manage patient clinical discharge summaries and documents",
+    },
   };
 
   const currentPage = pageTitles[location.pathname] || {
@@ -199,7 +208,7 @@ export default function MainLayout() {
         width: "100%",
       }}
     >
-      <Sidebar open={sidebarOpen} />
+      <Sidebar open={sidebarOpen} onItemClick={() => setSidebarOpen(false)} />
 
       <Box
         sx={{

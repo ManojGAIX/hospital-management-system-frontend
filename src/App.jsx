@@ -35,6 +35,7 @@ import PharmacyPurchase from "./pages/PharmacyPurchase"
 import PurchaseRegister from "./pages/PurchaseRegister"
 import CurrentStockRegister from "./pages/CurrentStockRegister"
 import PurchaseReturn from "./pages/PurchaseReturn"
+import DischargeSummary from "./pages/DischargeSummary";
 
 // ============================================
 // COMPONENTS 
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="/PurchaseRegister" element={<PurchaseRegister />} />
           <Route path="/CurrentStockRegister" element={<CurrentStockRegister />} />
           <Route path="/PurchaseReturn" element={<PurchaseReturn />} />
+          <Route path="/discharge-summary" element={<DischargeSummary />} />
         </Route>
       </Routes>
     </BrowserRouter>

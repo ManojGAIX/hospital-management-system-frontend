@@ -171,7 +171,7 @@ export default function ProcedureHistory() {
 
   const handleGeneratePDF = async (billId) => {
     try {
-      const res = await api.get(`api//api/procedure-bills/${billId}`);
+      const res = await api.get(`/api/procedure-bills/${billId}`);
 
       const billData = {
         ...res.data.bill,

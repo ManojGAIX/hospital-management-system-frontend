@@ -5,6 +5,7 @@ export const genderOptions = [
 ];
 
 export const bloodGroupOptions = [
+  "Unknown",
   "A+",
   "A-",
   "B+",

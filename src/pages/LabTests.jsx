@@ -20,11 +20,22 @@ import {
   Grid,
   Autocomplete,
   Divider,
+  Chip,
+  Collapse,
 } from "@mui/material";
 import api from "../services/api";
 
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import QrCodeIcon from "@mui/icons-material/QrCode";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 
 import { getPatients } from "../api/patientApi";
 import { getLabTests, createLabTest, deleteLabTest } from "../api/labTestApi";
@@ -34,6 +45,8 @@ export default function LabTests() {
   const [patients, setPatients] = useState([]);
   const [tests, setTests] = useState([]);
   const [configList, setConfigList] = useState([]);
+
+  const [showSummary, setShowSummary] = useState(false);
 
   // Form States
   const [patientId, setPatientId] = useState("");
@@ -51,6 +64,10 @@ export default function LabTests() {
   const [visits, setVisits] = useState([]);
   const [selectedVisitId, setSelectedVisitId] = useState("");
   const [visitNumber, setVisitNumber] = useState("");
+  const [paymentMode, setPaymentMode] = useState("CASH");
+
+  const upiId = import.meta.env.VITE_UPI_ID || "8553839908@upi";
+  const upiName = import.meta.env.VITE_UPI_NAME || "Madhav Hospital";
 
   useEffect(() => {
     loadPatients();
@@ -144,12 +161,12 @@ export default function LabTests() {
       amount: Number(amount || 0),
       result: result ? result.toUpperCase() : "PENDING",
       testDate: testDate,
-      billed: false,
+      paymentMode: paymentMode,
+      billed: paymentMode !== "PAY_LATER",
     };
 
     try {
-      // Direct JSON post body upload
-      await api.get("/api/labtests", payload);
+      await createLabTest(payload);
       alert("Lab test record added successfully!");
       resetForm();
       loadTests();
@@ -169,6 +186,7 @@ export default function LabTests() {
     setSelectedVisitId("");
     setVisitNumber("");
     setVisits([]);
+    setPaymentMode("CASH");
   };
 
   const handleDelete = async (id) => {
@@ -193,10 +211,111 @@ export default function LabTests() {
     );
   });
 
+  // Calculate today's totals
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayTests = tests.filter((t) => {
+    if (!t.testDate) return false;
+    return t.testDate.startsWith(todayStr);
+  });
+  const todayTotal = todayTests.reduce((sum, t) => sum + (t.amount || 0), 0);
+  const todayCash = todayTests
+    .filter((t) => t.paymentMode === "CASH")
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
+  const todayUpi = todayTests
+    .filter((t) => t.paymentMode === "UPI")
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
+
   return (
     <Box
       sx={{ padding: "10px", backgroundColor: "#f0f7ff", minHeight: "100vh" }}
     >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <IconButton onClick={() => setShowSummary(!showSummary)}>
+          {showSummary ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+        </IconButton>
+      </Box>
+
+      {/* Small Payment Summary Tiles at the top */}
+      <Collapse in={showSummary}>
+        <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1.5,
+              flex: 1,
+              minWidth: "150px",
+              background: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)",
+              color: "#fff",
+              borderRadius: "12px",
+              boxShadow: "0 4px 12px rgba(30,58,138,0.08)",
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.8, fontWeight: 700, display: "block" }}
+            >
+              TODAY'S LAB BILL TOTAL
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              ₹{todayTotal.toFixed(2)}
+            </Typography>
+          </Paper>
+
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1.5,
+              flex: 1,
+              minWidth: "150px",
+              background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)",
+              color: "#fff",
+              borderRadius: "12px",
+              boxShadow: "0 4px 12px rgba(13,148,136,0.08)",
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.8, fontWeight: 700, display: "block" }}
+            >
+              TODAY'S CASH TOTAL
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              ₹{todayCash.toFixed(2)}
+            </Typography>
+          </Paper>
+
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1.5,
+              flex: 1,
+              minWidth: "150px",
+              background: "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)",
+              color: "#fff",
+              borderRadius: "12px",
+              boxShadow: "0 4px 12px rgba(245,158,11,0.08)",
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.8, fontWeight: 700, display: "block" }}
+            >
+              TODAY'S UPI TOTAL
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              ₹{todayUpi.toFixed(2)}
+            </Typography>
+          </Paper>
+        </Box>
+      </Collapse>
+
       {/* PERFECTLY ALIGNED FORM GRID */}
       <Paper
         sx={{
@@ -342,34 +461,383 @@ export default function LabTests() {
             }}
           />
 
+          {/* PAYMENT MODE */}
+          <FormControl sx={{ flex: 1, minWidth: "160px" }}>
+            <InputLabel>Payment Mode</InputLabel>
+            <Select
+              value={paymentMode}
+              label="Payment Mode"
+              onChange={(e) => setPaymentMode(e.target.value)}
+            >
+              <MenuItem value="CASH">Cash</MenuItem>
+              <MenuItem value="UPI">UPI</MenuItem>
+              <MenuItem value="CARD">Card</MenuItem>
+              <MenuItem value="PAY_LATER">Charge to Visit Bill</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+
+        {/* Dynamic Payment Details Panel */}
+        {amount > 0 && (
+          <Box
+            sx={{
+              mt: 3,
+              pt: 3,
+              borderTop: "1px dashed rgba(0, 0, 0, 0.12)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 3,
+            }}
+          >
+            {/* Amount Breakdown/Estimation */}
+            <Box sx={{ minWidth: "200px" }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: "800",
+                  mb: 0.5,
+                  letterSpacing: "0.5px",
+                }}
+              >
+                LAB TEST TARIFF
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  py: 0.5,
+                  width: "100%",
+                  maxWidth: "250px",
+                }}
+              >
+                <Typography sx={{ color: "text.primary", fontSize: "0.9rem" }}>
+                  {testName.replace(/_/g, " ")}
+                </Typography>
+                <Typography sx={{ fontWeight: "700", fontSize: "0.9rem" }}>
+                  ₹{Number(amount).toFixed(2)}
+                </Typography>
+              </Box>
+              <Divider
+                sx={{
+                  my: 1,
+                  borderColor: "rgba(0,0,0,0.06)",
+                  maxWidth: "250px",
+                }}
+              />
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  py: 0.5,
+                  width: "100%",
+                  maxWidth: "250px",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontWeight: "850",
+                    color: "#1e3a8a",
+                    fontSize: "1.05rem",
+                  }}
+                >
+                  Total Amount
+                </Typography>
+                <Typography
+                  sx={{
+                    fontWeight: "900",
+                    color: "#1e3a8a",
+                    fontSize: "1.05rem",
+                  }}
+                >
+                  ₹{Number(amount).toFixed(2)}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Dynamic details based on paymentMode */}
+            {paymentMode === "UPI" && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2.5,
+                  p: 2,
+                  borderRadius: "16px",
+                  backgroundColor: "rgba(240, 247, 255, 0.95)",
+                  border: "1px solid rgba(191, 219, 254, 0.6)",
+                  boxShadow: "0 4px 12px rgba(30,64,175,0.04)",
+                }}
+              >
+                <Box
+                  component="img"
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=95x95&data=${encodeURIComponent(
+                    `upi://pay?pa=${upiId}&pn=${upiName}&am=${amount}&cu=INR&tn=LabTest_${testName}`,
+                  )}`}
+                  alt="Payment Scanner"
+                  sx={{
+                    width: 95,
+                    height: 95,
+                    borderRadius: "10px",
+                    backgroundColor: "#fff",
+                    p: 0.75,
+                    border: "1px solid rgba(226,232,240,1)",
+                  }}
+                />
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: "800",
+                      color: "#1e3a8a",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Direct Scan & Pay
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      color: "text.secondary",
+                      fontSize: "0.75rem",
+                      mt: 0.25,
+                    }}
+                  >
+                    Scan to pay Lab Test charges securely.
+                  </Typography>
+                  <Chip
+                    label={`₹${Number(amount).toFixed(2)}`}
+                    size="small"
+                    sx={{
+                      mt: 1.2,
+                      backgroundColor: "#10b981",
+                      color: "#fff",
+                      fontWeight: "800",
+                      fontSize: "0.8rem",
+                      px: 0.5,
+                    }}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {paymentMode === "CASH" && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2.5,
+                  p: 2,
+                  borderRadius: "16px",
+                  backgroundColor: "rgba(240, 253, 244, 0.95)",
+                  border: "1px solid rgba(187, 247, 208, 0.6)",
+                  boxShadow: "0 4px 12px rgba(22,163,74,0.04)",
+                }}
+              >
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: "10px",
+                    backgroundColor: "#fff",
+                    border: "1px solid rgba(226,232,240,1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <PaymentsIcon sx={{ fontSize: 48, color: "#16a34a" }} />
+                </Box>
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: "800",
+                      color: "#15803d",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Cash Payment
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      color: "text.secondary",
+                      fontSize: "0.75rem",
+                      mt: 0.25,
+                    }}
+                  >
+                    Collect cash at counter.
+                  </Typography>
+                  <Chip
+                    label={`Collect: ₹${Number(amount).toFixed(2)}`}
+                    size="small"
+                    sx={{
+                      mt: 1.2,
+                      backgroundColor: "#16a34a",
+                      color: "#fff",
+                      fontWeight: "800",
+                      fontSize: "0.8rem",
+                      px: 0.5,
+                    }}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {paymentMode === "CARD" && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2.5,
+                  p: 2,
+                  borderRadius: "16px",
+                  backgroundColor: "rgba(254, 242, 242, 0.95)",
+                  border: "1px solid rgba(254, 202, 202, 0.6)",
+                  boxShadow: "0 4px 12px rgba(220,38,38,0.04)",
+                }}
+              >
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: "10px",
+                    backgroundColor: "#fff",
+                    border: "1px solid rgba(226,232,240,1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <CreditCardIcon sx={{ fontSize: 48, color: "#dc2626" }} />
+                </Box>
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: "800",
+                      color: "#991b1b",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Card Payment
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      color: "text.secondary",
+                      fontSize: "0.75rem",
+                      mt: 0.25,
+                    }}
+                  >
+                    Swipe card at POS terminal.
+                  </Typography>
+                  <Chip
+                    label={`Swipe: ₹${Number(amount).toFixed(2)}`}
+                    size="small"
+                    sx={{
+                      mt: 1.2,
+                      backgroundColor: "#dc2626",
+                      color: "#fff",
+                      fontWeight: "800",
+                      fontSize: "0.8rem",
+                      px: 0.5,
+                    }}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {paymentMode === "PAY_LATER" && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2.5,
+                  p: 2,
+                  borderRadius: "16px",
+                  backgroundColor: "rgba(241, 245, 249, 0.95)",
+                  border: "1px solid rgba(203, 213, 225, 0.6)",
+                  boxShadow: "0 4px 12px rgba(100,116,139,0.04)",
+                }}
+              >
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: "10px",
+                    backgroundColor: "#fff",
+                    border: "1px solid rgba(226,232,240,1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <HourglassEmptyIcon sx={{ fontSize: 48, color: "#64748b" }} />
+                </Box>
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: "800",
+                      color: "#475569",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Charge to Visit Bill
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      color: "text.secondary",
+                      fontSize: "0.75rem",
+                      mt: 0.25,
+                    }}
+                  >
+                    Will be added to main invoice.
+                  </Typography>
+                  <Chip
+                    label={`Pay Later: ₹${Number(amount).toFixed(2)}`}
+                    size="small"
+                    sx={{
+                      mt: 1.2,
+                      backgroundColor: "#64748b",
+                      color: "#fff",
+                      fontWeight: "800",
+                      fontSize: "0.8rem",
+                      px: 0.5,
+                    }}
+                  />
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
           <Button
             variant="contained"
             onClick={handleSubmit}
             startIcon={<AddCircleIcon />}
             sx={{
-              height: 55,
+              height: 50,
               px: 4,
-
-              borderRadius: "14px",
+              borderRadius: "12px",
               textTransform: "none",
-
               fontSize: "0.95rem",
               fontWeight: 700,
-
               background: "linear-gradient(135deg, #10B981, #059669)",
-
               boxShadow: "0 8px 24px rgba(16,185,129,0.25)",
-
               transition: "all 0.3s ease",
-
               "&:hover": {
                 background: "linear-gradient(135deg, #1E40AF, #06B6D4)",
-
                 transform: "translateY(-2px)",
-
                 boxShadow: "0 12px 28px rgba(30,64,175,0.35)",
               },
-
               "&:active": {
                 transform: "scale(0.98)",
               },
@@ -426,6 +894,9 @@ export default function LabTests() {
                 TARIFF
               </TableCell>
               <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                PAY MODE
+              </TableCell>
+              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
                 RESULT
               </TableCell>
               <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
@@ -457,6 +928,31 @@ export default function LabTests() {
                   </TableCell>
                   <TableCell>{report.testName}</TableCell>
                   <TableCell>₹{report.amount}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={
+                        report.paymentMode === "PAY_LATER"
+                          ? "PAY LATER"
+                          : report.paymentMode || "CASH"
+                      }
+                      size="small"
+                      color={
+                        report.paymentMode === "UPI"
+                          ? "info"
+                          : report.paymentMode === "CARD"
+                            ? "primary"
+                            : report.paymentMode === "PAY_LATER"
+                              ? "default"
+                              : "success"
+                      }
+                      variant="outlined"
+                      sx={{
+                        fontWeight: "bold",
+                        fontSize: "0.75rem",
+                        height: "20px",
+                      }}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Box
                       component="span"

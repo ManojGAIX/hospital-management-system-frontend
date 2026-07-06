@@ -69,8 +69,7 @@ export default function Login() {
         minHeight: "100vh",
         width: "100vw",
         backgroundImage: "url('/background.png')",
-        backgroundSize:
-          "100% 100%" /* Prevents cropping and fills screenn precisely */,
+        backgroundSize: "cover" /* Keeps aspect ratio intact and prevents blurriness/stretching on large monitors */,
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         display: "flex",
@@ -83,7 +82,7 @@ export default function Login() {
           content: '""',
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.45))",
+          background: "linear-gradient(rgba(15, 23, 42, 0.15), rgba(15, 23, 42, 0.25))",
         },
       }}
     >
@@ -104,16 +103,16 @@ export default function Login() {
             maxWidth: 460 /* Reduced from 460 to make it look smaller */,
             p: { xs: 3, sm: 4 },
             borderRadius: 4,
-            background: "rgba(255,255,255,0.15)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+            background: "rgba(255, 255, 255, 0.22)", // Transparent glassmorphism to show the background image
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(255, 255, 255, 0.25)",
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
             textAlign: "center",
           }}
         >
           {/* LOGO */}
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
             <Box
               component="img"
               src="/logo.png"
@@ -125,6 +124,10 @@ export default function Login() {
                 } /* Reduced logo size to match smaller card */,
                 maxWidth: "100%",
                 objectFit: "contain",
+                borderRadius: "8px",
+                backgroundColor: "#fff", // White badge background to keep the logo clear and distinct
+                p: 1.5, // Padding inside the logo badge
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
               }}
             />
           </Box>
@@ -145,9 +148,10 @@ export default function Login() {
             variant="subtitle1"
             sx={{
               textAlign: "left",
-              fontWeight: 500,
-              color: "#0F172A",
+              fontWeight: 600,
+              color: "#fff",
               mb: -1,
+              textShadow: "0 1px 2px rgba(0,0,0,0.2)",
             }}
           >
             Username
@@ -165,6 +169,13 @@ export default function Login() {
                 backgroundColor: "#fff",
               },
             }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <AccountCircle sx={{ color: "#64748B" }} />
+                </InputAdornment>
+              ),
+            }}
           />
 
           {/* PASSWORD */}
@@ -173,10 +184,11 @@ export default function Login() {
             variant="subtitle1"
             sx={{
               textAlign: "left",
-              fontWeight: 500,
-              color: "#0F172A",
+              fontWeight: 600,
+              color: "#fff",
               mb: -1,
               mt: 1,
+              textShadow: "0 1px 2px rgba(0,0,0,0.2)",
             }}
           >
             Password
@@ -196,6 +208,11 @@ export default function Login() {
               },
             }}
             InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <LockIcon sx={{ color: "#64748B" }} />
+                </InputAdornment>
+              ),
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton onClick={() => setShowPassword(!showPassword)}>

@@ -34,7 +34,7 @@ export default function PharmacyBillView() {
     try {
       const res = await api.get(`/api/pharmacy/${id}`);
 
-      setSale(res.data.sale);
+      setSale(res.data.invoice);
       setItems(res.data.items || []);
     } catch (err) {
       console.error(err);

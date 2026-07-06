@@ -18,7 +18,7 @@ const initialFormData = {
   age: "",
   dateOfBirth: "",
 
-  bloodGroup: "",
+  bloodGroup: "Unknown",
   maritalStatus: "",
 
   phone: "",
@@ -35,7 +35,7 @@ const initialFormData = {
   occupation: "",
 
   remarks: "",
-  nationality:"",
+  nationality:"Indian",
   allergies:"",
   chronicDiseases:"",
 };
@@ -134,6 +134,8 @@ console.log("formData123" , formData);
       switchToDirectory();
     } catch (error) {
       console.error(error);
+      const errorMsg = error.response?.data?.message || error.message || "Failed to save patient";
+      alert("Error: " + errorMsg);
     } finally {
       setLoading(false);
     }

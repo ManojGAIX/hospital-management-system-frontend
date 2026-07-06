@@ -66,7 +66,7 @@ export default function BedManagement() {
 
   const loadPatients = async () => {
     const res = await api.get("/api/patients");
-    setPatients(res.data);
+    setPatients(res.data.data || []);
   };
 
   // FETCH MASTER DATABASE CONFIGURATIONS
@@ -112,7 +112,7 @@ export default function BedManagement() {
 
   const handleCreateBed = async () => {
     if (!newBed.bedNumber) return alert("Please provide a valid Bed Number");
-    await api.get("/api/beds", newBed);
+    await api.post("/api/beds", newBed);
     setMasterModal(false);
     setNewBed({
       bedNumber: "",
@@ -124,7 +124,7 @@ export default function BedManagement() {
 
   const handleAssignSubmit = async () => {
     if (!assignmentData.patientId) return alert("Please select a patient");
-    await api.get("/api/beds/assign", assignmentData);
+    await api.post("/api/beds/assign", assignmentData);
     setAssignModal(false);
     setAssignmentData({
       patientId: "",
@@ -139,7 +139,7 @@ export default function BedManagement() {
 
   const handleDischarge = async (bedId) => {
     if (window.confirm("Confirm discharge and generate final bill?")) {
-      const res = await api.pot(`/api/beds/discharge/${bedId}`);
+      const res = await api.post(`/api/beds/discharge/${bedId}`);
       alert(res.data);
       loadBeds();
     }

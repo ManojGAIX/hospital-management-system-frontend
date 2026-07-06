@@ -56,7 +56,7 @@ export default function LabResultEntry() {
     try {
       const res = await api.get("/api/patients");
 
-      setPatients(res.data);
+      setPatients(res.data.data || []);
     } catch (err) {
       console.error("Patients Load Error", err);
     }

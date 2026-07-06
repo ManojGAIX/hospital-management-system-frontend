@@ -12,6 +12,8 @@ import {
 import PersonIcon from "@mui/icons-material/Person";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
+import EditIcon from "@mui/icons-material/Edit";
 
 import usePatientForm from "../hooks/usePatientForm";
 
@@ -198,7 +200,7 @@ export default function PatientForm({
         <Grid size={{ xs: 12, md: 4 }}>
           <TextField
             fullWidth
-            label="Occupation"
+            label="Occupation (Optional)"
             name="occupation"
             value={formData.occupation}
             onChange={(e) => handleChange("occupation", e.target.value)}
@@ -265,12 +267,12 @@ export default function PatientForm({
         <Grid size={{ xs: 12, md: 4 }}>
           <TextField
             fullWidth
-            label="Email Address"
+            label="Email Address (Optional)"
             name="email"
             value={formData.email}
             onChange={(e) => handleChange("email", e.target.value)}
             error={!!errors.email}
-            helperText={errors.email}
+            helperText={errors.email || "Leave blank if not available"}
           />
         </Grid>
 
@@ -406,7 +408,7 @@ export default function PatientForm({
             fullWidth
             multiline
             rows={3}
-            label="Allergies"
+            label="Allergies (Optional)"
             name="allergies"
             value={formData.allergies}
             onChange={(e) => handleChange("allergies", e.target.value)}
@@ -420,7 +422,7 @@ export default function PatientForm({
             fullWidth
             multiline
             rows={3}
-            label="Chronic Diseases"
+            label="Chronic Diseases (Optional)"
             name="chronicDiseases"
             value={formData.chronicDiseases}
             onChange={(e) => handleChange("chronicDiseases", e.target.value)}
@@ -434,7 +436,7 @@ export default function PatientForm({
             fullWidth
             multiline
             rows={3}
-            label="Remarks"
+            label="Remarks (Optional)"
             name="remarks"
             value={formData.remarks}
             onChange={(e) => handleChange("remarks", e.target.value)}
@@ -457,7 +459,7 @@ export default function PatientForm({
             disabled={loading}
             sx={{
               minWidth: 140,
-              height: 46,
+              height: 50,
               borderRadius: 3,
               textTransform: "none",
               fontWeight: 600,
@@ -472,17 +474,33 @@ export default function PatientForm({
             variant="contained"
             onClick={handleSubmit}
             disabled={loading}
+            startIcon={
+              loading ? null : editingPatient ? (
+                <EditIcon />
+              ) : (
+                <PersonAddAlt1Icon />
+              )
+            }
             sx={{
               minWidth: 220,
-              height: 46,
+              height: 50,
               borderRadius: 3,
               textTransform: "none",
               fontWeight: 700,
-              fontSize: "15px",
-              background: "linear-gradient(135deg,#2563EB,#1D4ED8)",
+              fontSize: "14px",
+              letterSpacing: "0.3px",
+              background: "linear-gradient(135deg,#06B6D4,#1E40AF)",
+              color: "#fff",
+              boxShadow: "0 8px 20px rgba(6,182,212,0.25)",
+              transition: "all 0.3s ease",
 
               "&:hover": {
-                background: "linear-gradient(135deg,#1D4ED8,#1E40AF)",
+                background: "linear-gradient(135deg,#0891B2,#1D4ED8)",
+                transform: "translateY(-2px)",
+                boxShadow: "0 12px 28px rgba(6,182,212,0.35)",
+              },
+              "&:active": {
+                transform: "scale(0.98)",
               },
             }}
           >

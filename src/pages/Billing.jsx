@@ -148,6 +148,7 @@ export default function PatientBilling() {
     labItems: [],
     additionalCharges: [],
     physioItems: [],
+    opdItems: [],
     admissionFee: 0,
     totalAmount: 0,
     bedCharge: 0,
@@ -192,6 +193,12 @@ export default function PatientBilling() {
       0,
     ) || 0;
 
+  const opdTotal =
+    billData.opdItems?.reduce(
+      (sum, item) => sum + Number(item.subtotal || 0),
+      0,
+    ) || 0;
+
   const admissionTotal = Number(billData.admissionFee || 0);
 
   const bedTotal = Number(billData.bedCharge || 0);
@@ -202,6 +209,7 @@ export default function PatientBilling() {
     physioTotal +
     admissionTotal +
     bedTotal +
+    opdTotal +
     additionalTotal;
 
   const grandTotalAmount = subtotalAmount - Number(discount || 0);
@@ -221,7 +229,7 @@ export default function PatientBilling() {
   const loadPatients = async () => {
     try {
       const res = await api.get("/api/patients");
-      setPatients(res.data);
+      setPatients(res.data.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -259,7 +267,7 @@ export default function PatientBilling() {
     setSelectedPatient(patient);
 
     try {
-      const res = await api.get(`//api/visits/active/${patient.id}`);
+      const res = await api.get(`/api/visits/active/${patient.id}`);
 
       setVisits(res.data);
 
@@ -296,6 +304,7 @@ export default function PatientBilling() {
         medicineItems: res.data.medicineItems || [],
         labItems: res.data.labItems || [],
         physioItems: res.data.physioItems || [],
+        opdItems: res.data.opdItems || [],
         additionalCharges:
           res.data.additionalCharges?.length > 0
             ? res.data.additionalCharges
@@ -323,19 +332,21 @@ export default function PatientBilling() {
       alert("Please select visit");
       return;
     }
-
+console.log("paymentMode", paymentMode);
     try {
       const res = await api.post("/api/bills/generate", {
-        visitId: selectedVisitId,
+        visitId: selectedVisitId, 
         bedId: 0,
         additionalCharges,
         discount: discount,
+        paymentMode,
       });
 
       setBillData({
         medicineItems: res.data.medicineItems || [],
         labItems: res.data.labItems || [],
         physioItems: res.data.physioItems || [],
+        opdItems: res.data.opdItems || [],
         additionalCharges:
           res.data.additionalCharges?.length > 0
             ? res.data.additionalCharges
@@ -353,7 +364,7 @@ export default function PatientBilling() {
       setIsSaved(true);
 
       setTimeout(() => {
-        generatePDF();
+      //  generatePDF();
       }, 300);
 
       showNotification("Invoice Saved Successfully", "success");
@@ -695,6 +706,31 @@ export default function PatientBilling() {
             "1",
             safeNumber(c.unitPrice).toFixed(2),
             safeNumber(c.subtotal).toFixed(2),
+          ]);
+        });
+      }
+
+      if (billData.opdItems?.length > 0) {
+        tableBody.push([
+          {
+            content: "OPD CHARGES",
+            colSpan: 5,
+            styles: {
+              fillColor: [245, 245, 245],
+              textColor: [51, 51, 51],
+              fontStyle: "bold",
+              halign: "left",
+            },
+          },
+        ]);
+
+        billData.opdItems.forEach((o) => {
+          tableBody.push([
+            serialNo++,
+            o.name,
+            "1",
+            safeNumber(o.unitPrice).toFixed(2),
+            safeNumber(o.subtotal).toFixed(2),
           ]);
         });
       }
@@ -1482,6 +1518,44 @@ export default function PatientBilling() {
 
                         <TableCell align="right">
                           ₹{safeNumber(p.subtotal).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </>
+                )}
+
+                {billData.opdItems?.length > 0 && (
+                  <>
+                    <TableRow
+                      sx={{
+                        backgroundColor: "#f5f5f5",
+                      }}
+                    >
+                      <TableCell
+                        colSpan={4}
+                        sx={{
+                          fontWeight: "bold",
+                          color: "#333333",
+                          fontSize: "14px",
+                          borderBottom: "none",
+                        }}
+                      >
+                        OPD CHARGES
+                      </TableCell>
+                    </TableRow>
+
+                    {billData.opdItems.map((o, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{o.name}</TableCell>
+
+                        <TableCell align="center">1</TableCell>
+
+                        <TableCell align="right">
+                          ₹{safeNumber(o.unitPrice).toFixed(2)}
+                        </TableCell>
+
+                        <TableCell align="right">
+                          ₹{safeNumber(o.subtotal).toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}

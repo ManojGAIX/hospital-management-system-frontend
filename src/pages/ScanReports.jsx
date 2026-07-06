@@ -169,7 +169,7 @@ export default function ScanReportScreen() {
 
     try {
       const response = await api.get(
-        `api//api/scanreports/download/${sanitizedFileName}`,
+        `/api/scanreports/download/${sanitizedFileName}`,
         { responseType: "blob" },
       );
 
@@ -208,7 +208,7 @@ export default function ScanReportScreen() {
 
     try {
       const response = await api.get(
-        `api//api/scanreports/download/${sanitizedFileName}`,
+        `/api/scanreports/download/${sanitizedFileName}`,
         { responseType: "blob" },
       );
 

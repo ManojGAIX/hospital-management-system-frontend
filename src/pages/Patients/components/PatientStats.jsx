@@ -1,5 +1,5 @@
 import React from "react";
-import { Grid, Card, CardContent, Typography, Box } from "@mui/material";
+import { Grid, Paper, Typography, Box } from "@mui/material";
 
 import Groups2Icon from "@mui/icons-material/Groups2";
 import ManIcon from "@mui/icons-material/Man";
@@ -28,25 +28,25 @@ export default function PatientStats({ patients = [] }) {
     {
       title: "Total Patients",
       value: totalPatients,
-      icon: <Groups2Icon sx={{ fontSize: 42 }} />,
+      icon: <Groups2Icon sx={{ fontSize: 24 }} />,
       gradient: "linear-gradient(135deg,#2563EB,#1D4ED8)",
     },
     {
       title: "Male Patients",
       value: malePatients,
-      icon: <ManIcon sx={{ fontSize: 42 }} />,
+      icon: <ManIcon sx={{ fontSize: 24 }} />,
       gradient: "linear-gradient(135deg,#0891B2,#06B6D4)",
     },
     {
       title: "Female Patients",
       value: femalePatients,
-      icon: <Woman2Icon sx={{ fontSize: 42 }} />,
+      icon: <Woman2Icon sx={{ fontSize: 24 }} />,
       gradient: "linear-gradient(135deg,#DB2777,#EC4899)",
     },
     {
       title: "Today's Registration",
       value: todayRegistrations,
-      icon: <TodayIcon sx={{ fontSize: 42 }} />,
+      icon: <TodayIcon sx={{ fontSize: 24 }} />,
       gradient: "linear-gradient(135deg,#059669,#10B981)",
     },
   ];
@@ -55,45 +55,63 @@ export default function PatientStats({ patients = [] }) {
     <Grid container spacing={2}>
       {cards.map((card) => (
         <Grid item xs={12} sm={6} lg={3} key={card.title}>
-          <Card
+          <Paper
+            elevation={0}
             sx={{
-              borderRadius: 4,
+              p: 1.5,
+              borderRadius: "14px",
               color: "#fff",
               background: card.gradient,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-              transition: "0.3s",
-
+              boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              transition: "all 0.3s ease",
               "&:hover": {
-                transform: "translateY(-5px)",
+                transform: "translateY(-3px)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
               },
             }}
           >
-            <CardContent
+            <Box
               sx={{
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
-                minHeight: 120,
+                justifyContent: "center",
+                width: 44,
+                height: 44,
+                borderRadius: "10px",
+                background: "rgba(255, 255, 255, 0.2)",
+                backdropFilter: "blur(4px)",
               }}
             >
-              <Box>
-                <Typography
-                  sx={{
-                    opacity: 0.9,
-                    fontSize: 15,
-                  }}
-                >
-                  {card.title}
-                </Typography>
-
-                <Typography variant="h3" fontWeight="bold">
-                  {card.value}
-                </Typography>
-              </Box>
-
               {card.icon}
-            </CardContent>
-          </Card>
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                sx={{
+                  opacity: 0.85,
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.2px",
+                  lineHeight: 1.2,
+                }}
+                noWrap
+              >
+                {card.title}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: "1.45rem",
+                  fontWeight: 800,
+                  lineHeight: 1.1,
+                  mt: 0.2,
+                }}
+              >
+                {card.value}
+              </Typography>
+            </Box>
+          </Paper>
         </Grid>
       ))}
     </Grid>

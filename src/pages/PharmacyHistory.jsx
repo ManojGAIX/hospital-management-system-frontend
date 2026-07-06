@@ -15,6 +15,8 @@ import {
   Button,
   TablePagination,
   Chip,
+  Tabs,
+  Tab,
 } from "@mui/material";
 
 import LocalPharmacyIcon from "@mui/icons-material/LocalPharmacy";
@@ -48,6 +50,15 @@ export default function PharmacyHistory() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5); // Default to 5 rows
 
+  const [tabIndex, setTabIndex] = useState(0); // 0 = Invoices, 1 = Medicines Sold Report
+  const [reportData, setReportData] = useState([]);
+  const [reportSearch, setReportSearch] = useState("");
+  const [reportStartDate, setReportStartDate] = useState("");
+  const [reportEndDate, setReportEndDate] = useState("");
+
+  const [reportPage, setReportPage] = useState(0);
+  const [reportRowsPerPage, setReportRowsPerPage] = useState(10);
+
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -57,8 +68,18 @@ export default function PharmacyHistory() {
     setPage(0); // Reset to first page
   };
 
+  const handleReportPageChange = (event, newPage) => {
+    setReportPage(newPage);
+  };
+
+  const handleReportRowsPerPageChange = (event) => {
+    setReportRowsPerPage(parseInt(event.target.value, 10));
+    setReportPage(0);
+  };
+
   useEffect(() => {
     loadHistory();
+    loadReport();
   }, []);
 
   const loadHistory = async () => {
@@ -71,12 +92,36 @@ export default function PharmacyHistory() {
     }
   };
 
+  const loadReport = async () => {
+    try {
+      const res = await api.get("api/pharmacy/sales-report");
+      setReportData(res.data || []);
+    } catch (err) {
+      console.error("Failed to load sales report", err);
+    }
+  };
+
   const filtered = sales.filter(
     (s) =>
       (s.invoiceNumber || "").toLowerCase().includes(search.toLowerCase()) ||
       (s.patientName || "").toLowerCase().includes(search.toLowerCase()) ||
       (s.mobile || "").includes(search),
   );
+
+  const filteredReport = reportData.filter((item) => {
+    const matchesSearch =
+      (item.patientName || "").toLowerCase().includes(reportSearch.toLowerCase()) ||
+      (item.medicineName || "").toLowerCase().includes(reportSearch.toLowerCase()) ||
+      (item.invoiceNumber || "").toLowerCase().includes(reportSearch.toLowerCase());
+
+    const matchesStartDate =
+      !reportStartDate || new Date(item.saleDate) >= new Date(reportStartDate);
+
+    const matchesEndDate =
+      !reportEndDate || new Date(item.saleDate) <= new Date(reportEndDate + "T23:59:59");
+
+    return matchesSearch && matchesStartDate && matchesEndDate;
+  });
 
   const totalRevenue = filtered.reduce(
     (sum, bill) => sum + Number(bill.finalAmount || 0),
@@ -190,38 +235,43 @@ export default function PharmacyHistory() {
     const doc = new jsPDF();
 
     // ==========================
-    // LOGO
-    // ==========================
-
-    const logoWidth = 140;
-    const logoHeight = 32;
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const x = (pageWidth - logoWidth) / 2;
-
-    doc.addImage(hospitalLogo, "PNG", x, 8, logoWidth, logoHeight);
-
-    doc.setFontSize(10);
-    doc.setTextColor(80);
-
-    doc.text(
-      "Madhav Hosp. Premises, Near Kanni Towers, Railway Station Road, Indi - 586209",
-      105,
-      44,
-      { align: "center" },
-    );
-
-    doc.line(10, 45, 200, 45);
-
-    // ==========================
-    // TITLE
+    // HEADER
     // ==========================
 
     doc.setFontSize(18);
     doc.setTextColor(30, 58, 138);
     doc.setFont(undefined, "bold");
 
-    doc.text("PHARMACY BILL", 105, 58, {
+    doc.text("MADHAV MEDICAL & GENERAL STORES", 105, 18, {
+      align: "center",
+    });
+
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.setFont(undefined, "normal");
+
+    doc.text(
+      "Madhav Hosp. Premises, Near Kanni Towers, Railway Station Road, Indi - 586209",
+      105,
+      28,
+      {
+        align: "center",
+      },
+    );
+
+    doc.setDrawColor(30, 58, 138);
+    doc.setLineWidth(0.5);
+    doc.line(10, 34, 200, 34);
+
+    // ==========================
+    // TITLE
+    // ==========================
+
+    doc.setFontSize(16);
+    doc.setTextColor(30, 58, 138);
+    doc.setFont(undefined, "bold");
+
+    doc.text("PHARMACY BILL", 105, 44, {
       align: "center",
     });
 
@@ -229,7 +279,7 @@ export default function PharmacyHistory() {
     // PATIENT DETAILS
     // ==========================
 
-    let y = 75;
+    let y = 58;
 
     doc.setTextColor(0);
     doc.setFontSize(11);
@@ -283,7 +333,7 @@ export default function PharmacyHistory() {
     ]);
 
     autoTable(doc, {
-      startY: y + 10,
+      startY: y + 12,
 
       head: [["SI No", "Medicine", "Qty", "Price", "GST", "Amount"]],
 
@@ -574,127 +624,266 @@ export default function PharmacyHistory() {
           </Box>
         </Box>
       </Paper>
-      <TextField
-        fullWidth
-        placeholder="Search Invoice / Patient / Mobile"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 2 }}
-      />
+      {/* TABS FOR HISTORY VS REPORT */}
+      <Tabs
+        value={tabIndex}
+        onChange={(e, v) => setTabIndex(v)}
+        sx={{
+          mb: 3,
+          borderBottom: "1px solid #E2E8F0",
+          "& .MuiTab-root": {
+            textTransform: "none",
+            fontWeight: 700,
+            fontSize: "1rem",
+            color: "#64748B",
+          },
+          "& .Mui-selected": {
+            color: "#1E40AF !important",
+          },
+          "& .MuiTabs-indicator": {
+            backgroundColor: "#1E40AF",
+            height: "3px",
+            borderRadius: "3px",
+          },
+        }}
+      >
+        <Tab label="Sales Invoices" />
+        <Tab label="Medicines Sold Report" />
+      </Tabs>
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead
+      {tabIndex === 0 && (
+        <>
+          <TextField
+            fullWidth
+            placeholder="Search Invoice / Patient / Mobile"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+
+          <TableContainer>
+            <Table size="small">
+              <TableHead
+                sx={{
+                  background: "linear-gradient(90deg,#1E40AF,#3B82F6)",
+                }}
+              >
+                <TableRow
+                  sx={{
+                    background: "linear-gradient(90deg,#1E40AF,#3B82F6)",
+                  }}
+                >
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    SI No
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff" }}>Invoice No</TableCell>
+
+                  <TableCell sx={{ color: "#fff" }}>Patient</TableCell>
+
+                  <TableCell sx={{ color: "#fff" }}>Mobile</TableCell>
+
+                  <TableCell sx={{ color: "#fff" }}>Date</TableCell>
+
+                  <TableCell sx={{ color: "#fff" }}>Amount</TableCell>
+
+                  <TableCell sx={{ color: "#fff" }}>PAY</TableCell>
+
+                  <TableCell sx={{ color: "#fff" }}>Action</TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {paginatedInvoices.map((sale, index) => (
+                  <TableRow key={sale.id}>
+                    <TableCell sx={{ fontWeight: "500", textAlign: "center" }}>
+                      {page * rowsPerPage + index + 1}
+                    </TableCell>
+                    <TableCell>{sale.invoiceNumber}</TableCell>
+
+                    <TableCell>{sale.patientName}</TableCell>
+
+                    <TableCell>{sale.mobile}</TableCell>
+
+                    <TableCell>
+                      {new Date(sale.saleDate).toLocaleDateString()}
+                    </TableCell>
+
+                    <TableCell>
+                      ₹
+                      {Math.round(Number(sale.finalAmount || 0)).toLocaleString(
+                        "en-IN",
+                      )}
+                    </TableCell>
+
+                    <TableCell>{sale.paymentMode}</TableCell>
+
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleGeneratePDF(sale.id)}
+                        sx={{
+                          color: "#DC2626",
+                          backgroundColor: "#FEF2F2",
+
+                          border: "1px solid #FECACA",
+
+                          transition: "all 0.2s ease",
+
+                          "&:hover": {
+                            backgroundColor: "#FEE2E2",
+                            transform: "scale(1.08)",
+                          },
+                        }}
+                      >
+                        <PictureAsPdfIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={filtered.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </>
+      )}
+
+      {tabIndex === 1 && (
+        <Box>
+          {/* Filters */}
+          <Paper
+            elevation={0}
             sx={{
-              background: "linear-gradient(90deg,#1E40AF,#3B82F6)",
+              p: 2.5,
+              mb: 3,
+              borderRadius: "16px",
+              border: "1px solid #E2E8F0",
+              background: "#fff",
+              display: "flex",
+              gap: 2.5,
+              flexWrap: "wrap",
+              alignItems: "center",
             }}
           >
-            <TableRow
+            <TextField
+              placeholder="Search Patient / Medicine / Invoice"
+              value={reportSearch}
+              onChange={(e) => setReportSearch(e.target.value)}
               sx={{
-                background: "linear-gradient(90deg,#1E40AF,#3B82F6)",
+                flexGrow: 1,
+                minWidth: 280,
+                "& .MuiOutlinedInput-root": { borderRadius: "12px" },
+              }}
+            />
+            <TextField
+              type="date"
+              label="Start Date"
+              InputLabelProps={{ shrink: true }}
+              value={reportStartDate}
+              onChange={(e) => setReportStartDate(e.target.value)}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+            />
+            <TextField
+              type="date"
+              label="End Date"
+              InputLabelProps={{ shrink: true }}
+              value={reportEndDate}
+              onChange={(e) => setReportEndDate(e.target.value)}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+            />
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setReportSearch("");
+                setReportStartDate("");
+                setReportEndDate("");
+              }}
+              sx={{
+                borderRadius: "12px",
+                textTransform: "none",
+                fontWeight: 700,
+                borderColor: "#CBD5E1",
+                color: "#475569",
+                "&:hover": { borderColor: "#94A3B8", background: "#F8FAFC" },
               }}
             >
-              <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
-                SI No
-              </TableCell>
-              <TableCell sx={{ color: "#fff" }}>Invoice No</TableCell>
+              Reset Filters
+            </Button>
+          </Paper>
 
-              <TableCell sx={{ color: "#fff" }}>Patient</TableCell>
+          {/* Table */}
+          <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid #E2E8F0", borderRadius: "16px" }}>
+            <Table size="small">
+              <TableHead sx={{ background: "linear-gradient(90deg, #0F172A, #1E293B)" }}>
+                <TableRow>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>SI No</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Invoice No</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Date</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Patient/Customer</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Medicine</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Batch</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Expiry</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Qty</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Price</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Subtotal</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredReport.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                      No matching records found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredReport
+                    .slice(reportPage * reportRowsPerPage, reportPage * reportRowsPerPage + reportRowsPerPage)
+                    .map((item, idx) => (
+                      <TableRow key={idx} sx={{ "&:hover": { background: "#F8FAFC" } }}>
+                        <TableCell sx={{ textAlign: "center" }}>
+                          {reportPage * reportRowsPerPage + idx + 1}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{item.invoiceNumber}</TableCell>
+                        <TableCell>
+                          {item.saleDate ? new Date(item.saleDate).toLocaleDateString() : "-"}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500 }}>{item.patientName}</TableCell>
+                        <TableCell>{item.medicineName}</TableCell>
+                        <TableCell>{item.batchNo || "-"}</TableCell>
+                        <TableCell>
+                          {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }).toUpperCase() : "-"}
+                        </TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>₹{item.unitPrice?.toFixed(2)}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: "#1E40AF" }}>
+                          ₹{item.subtotal?.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-              <TableCell sx={{ color: "#fff" }}>Mobile</TableCell>
-
-              <TableCell sx={{ color: "#fff" }}>Date</TableCell>
-
-              <TableCell sx={{ color: "#fff" }}>Amount</TableCell>
-
-              <TableCell sx={{ color: "#fff" }}>PAY</TableCell>
-
-              <TableCell sx={{ color: "#fff" }}>Action</TableCell>
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {paginatedInvoices.map((sale, index) => (
-              <TableRow key={sale.id}>
-                <TableCell sx={{ fontWeight: "500", textAlign: "center" }}>
-                  {page * rowsPerPage + index + 1}
-                </TableCell>
-                <TableCell>{sale.invoiceNumber}</TableCell>
-
-                <TableCell>{sale.patientName}</TableCell>
-
-                <TableCell>{sale.mobile}</TableCell>
-
-                <TableCell>
-                  {new Date(sale.saleDate).toLocaleDateString()}
-                </TableCell>
-
-                <TableCell>
-                  ₹
-                  {Math.round(Number(sale.finalAmount || 0)).toLocaleString(
-                    "en-IN",
-                  )}
-                </TableCell>
-
-                <TableCell>{sale.paymentMode}</TableCell>
-
-                <TableCell>
-                  {/* <Button
-                      variant="contained"
-                      startIcon={<VisibilityIcon />}
-                      onClick={() => navigate(`/pharmacy-bill/${sale.id}`)}
-                      sx={{ mr: 1 }}
-                    >
-                      View
-                    </Button> */}
-                  <IconButton
-                    size="small"
-                    onClick={() => handleGeneratePDF(sale.id)}
-                    sx={{
-                      color: "#DC2626",
-                      backgroundColor: "#FEF2F2",
-
-                      border: "1px solid #FECACA",
-
-                      transition: "all 0.2s ease",
-
-                      "&:hover": {
-                        backgroundColor: "#FEE2E2",
-                        transform: "scale(1.08)",
-                      },
-                    }}
-                  >
-                    <PictureAsPdfIcon fontSize="small" />
-                  </IconButton>
-                  {/* <IconButton
-                      onClick={() => handleGeneratePDF(sale.id)}
-                      sx={{
-                        bgcolor: "#d32f2f",
-                        color: "#fff",
-                        "&:hover": {
-                          bgcolor: "#b71c1c",
-                        },
-                      }}
-                    >
-                      <PictureAsPdfIcon />
-                    </IconButton> */}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      {/* Added Pagination Component below TableContainer */}
-      {/* TABULAR LAYOUT PAGINATION FOOTER */}
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 25, 50]}
-        component="div"
-        count={filtered.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            component="div"
+            count={filteredReport.length}
+            rowsPerPage={reportRowsPerPage}
+            page={reportPage}
+            onPageChange={handleReportPageChange}
+            onRowsPerPageChange={handleReportRowsPerPageChange}
+          />
+        </Box>
+      )}
     </Box>
   );
 }
