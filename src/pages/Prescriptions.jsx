@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 
 import {
   Typography,
+  Avatar,
+  Card,
+  CardContent,
   TextField,
   Button,
   Paper,
@@ -24,6 +27,7 @@ import {
   Divider,
   Grid,
   InputAdornment,
+  Stack,
 } from "@mui/material";
 import api from "../services/api";
 // Icons
@@ -33,6 +37,11 @@ import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import LocalPharmacyIcon from "@mui/icons-material/LocalPharmacy";
+import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import PersonSearchIcon from "@mui/icons-material/PersonSearch";
+import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
 import DialogActions from "@mui/material/DialogActions";
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -64,6 +73,35 @@ import {
   updatePrescription,
   deletePrescription,
 } from "../api/prescriptionApi";
+
+const palette = {
+  ink: "#0f172a",
+  muted: "#64748b",
+  line: "#dbe4ee",
+  page: "#f3f7fb",
+  panel: "#ffffff",
+  blue: "#1d4ed8",
+  cyan: "#0891b2",
+  green: "#047857",
+  amber: "#b45309",
+  red: "#b91c1c",
+};
+
+const panelSx = {
+  borderRadius: 2,
+  border: `1px solid ${palette.line}`,
+  backgroundColor: palette.panel,
+  boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+};
+
+const tableHeadSx = {
+  background: "linear-gradient(90deg,#1E40AF,#3B82F6)",
+  "& .MuiTableCell-root": {
+    color: "#fff",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+};
 
 export default function Prescriptions() {
   const [patients, setPatients] = useState([]);
@@ -314,6 +352,28 @@ export default function Prescriptions() {
       (p.patientName || "").toLowerCase().includes(search.toLowerCase()),
     )
     .sort((a, b) => b.id - a.id);
+
+  const selectedPatient = patients.find((p) => String(p.id) === String(patientId));
+  const selectedVisit = patientVisits.find((v) => String(v.id) === String(visitId));
+  const canSavePrescription = Boolean(patientId && visitId && prescriptionItems.length);
+  const totalMedicineDays = prescriptionItems.reduce((sum, item) => sum + Number(item.days || 0), 0);
+  const selectedMedicineStock = selectedMedicine?.stockQuantity ?? selectedMedicine?.stock ?? 0;
+
+  const quickPresets = [
+    { label: "Fever", dosage: "1-0-1", days: 3, instructions: "After Food" },
+    { label: "Pain", dosage: "1-0-1", days: 5, instructions: "After Food" },
+    { label: "Antibiotic", dosage: "1-1-1", days: 5, instructions: "After Food" },
+    { label: "Night", dosage: "0-0-1", days: 7, instructions: "At Bed Time" },
+  ];
+
+  const applyQuickPreset = (preset) => {
+    setMedicineForm({
+      ...medicineForm,
+      dosage: preset.dosage,
+      days: preset.days,
+      instructions: preset.instructions,
+    });
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this prescription?")) {
@@ -666,456 +726,316 @@ export default function Prescriptions() {
   };
 
   return (
-    <Box p={1}>
-      <Paper sx={{ mb: 2 }}>
-        <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)}>
-          <Tab label="Add Prescription" />
-          <Tab label="Prescription History" />
-        </Tabs>
+    <Box sx={{ p: { xs: 1.5, md: 3 }, backgroundColor: palette.page, minHeight: "100vh" }}>
+      <Paper elevation={0} sx={{ ...panelSx, p: { xs: 2, md: 2.5 }, mb: 2.5 }}>
+        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", md: "center" }} spacing={2}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Avatar sx={{ bgcolor: "#dbeafe", color: palette.blue, width: 54, height: 54 }}>
+              <HistoryEduIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h4" sx={{ color: palette.ink, fontWeight: 950, letterSpacing: 0 }}>
+                Prescription Desk
+              </Typography>
+              <Typography variant="body2" sx={{ color: palette.muted, fontWeight: 750 }}>
+                Fast medicine entry with patient visit context, presets, notes, print and history in one workflow.
+              </Typography>
+            </Box>
+          </Stack>
+          <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ minHeight: 42, "& .MuiTab-root": { textTransform: "none", fontWeight: 900, minHeight: 42 } }}>
+            <Tab label="Add Prescription" />
+            <Tab label="Prescription History" />
+          </Tabs>
+        </Stack>
       </Paper>
 
       {tabValue === 0 && (
-        <Paper sx={{ p: 2 }}>
+        <Stack spacing={2.25}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <Autocomplete
-                sx={{
-                  flex: 1,
-                  minWidth: 250,
-                  "& .MuiOutlinedInput-root": { borderRadius: "12px" },
-                }}
-                options={patients}
-                getOptionLabel={(option) =>
-                  `${option.patientCode || ""} - ${option.name || ""}`
-                }
-                value={patients.find((p) => p.id === patientId) || null}
-                onChange={async (event, value) => {
-                  if (!value) {
-                    setPatientId("");
-                    setPatientName("");
-                    setPatientVisits([]);
-                    setVisitId("");
-                    setDoctorName("");
-                    return;
-                  }
-
-                  setPatientId(value.id);
-                  setPatientName(value.name);
-
-                  const res = await api.get(`/api/visits/active/${value.id}`);
-
-                  setPatientVisits(res.data || []);
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} label="Patient" fullWidth />
-                )}
-              />
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Card elevation={0} sx={{ ...panelSx, height: "100%" }}>
+                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                    <Avatar sx={{ bgcolor: "#e0f2fe", color: palette.cyan }}>
+                      <PersonSearchIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 950, color: palette.ink }}>Patient</Typography>
+                      <Typography variant="caption" sx={{ color: palette.muted, fontWeight: 800 }}>Search PRN or name</Typography>
+                    </Box>
+                  </Stack>
+                  <Autocomplete
+                    options={patients}
+                    getOptionLabel={(option) => `${option.patientCode || ""} - ${option.name || ""}`}
+                    value={patients.find((p) => String(p.id) === String(patientId)) || null}
+                    onChange={async (event, value) => {
+                      if (!value) {
+                        setPatientId("");
+                        setPatientName("");
+                        setPatientVisits([]);
+                        setVisitId("");
+                        setDoctorName("");
+                        return;
+                      }
+                      setPatientId(value.id);
+                      setPatientName(value.name);
+                      const res = await api.get(`/api/visits/active/${value.id}`);
+                      setPatientVisits(res.data || []);
+                    }}
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+                    renderInput={(params) => <TextField {...params} label="Patient" fullWidth />}
+                  />
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap" useFlexGap>
+                    <Chip size="small" label={selectedPatient?.patientCode || "No PRN"} sx={{ fontWeight: 850 }} />
+                    <Chip size="small" label={selectedPatient?.phone || "No phone"} variant="outlined" sx={{ fontWeight: 850 }} />
+                  </Stack>
+                </CardContent>
+              </Card>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Autocomplete
-                sx={{
-                  flex: 1,
-                  minWidth: 150,
-                  "& .MuiOutlinedInput-root": { borderRadius: "12px" },
-                }}
-                options={patientVisits}
-                getOptionLabel={(option) => option.visitNumber || ""}
-                value={patientVisits.find((v) => v.id === visitId) || null}
-                onChange={(e, visit) => {
-                  if (!visit) {
-                    setVisitId("");
-                    setDoctorName("");
-                    return;
-                  }
-                  console.log(visit);
 
-                  setVisitId(visit.id);
-
-                  setDoctorName(visit.doctorName || "");
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} label="Visit" />
-                )}
-              />
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Card elevation={0} sx={{ ...panelSx, height: "100%" }}>
+                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                    <Avatar sx={{ bgcolor: "#ecfdf5", color: palette.green }}>
+                      <MedicalServicesIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 950, color: palette.ink }}>Active Visit</Typography>
+                      <Typography variant="caption" sx={{ color: palette.muted, fontWeight: 800 }}>Select consultation</Typography>
+                    </Box>
+                  </Stack>
+                  <Autocomplete
+                    options={patientVisits}
+                    getOptionLabel={(option) => option.visitNumber || ""}
+                    value={patientVisits.find((v) => String(v.id) === String(visitId)) || null}
+                    onChange={(e, visit) => {
+                      if (!visit) {
+                        setVisitId("");
+                        setDoctorName("");
+                        return;
+                      }
+                      setVisitId(visit.id);
+                      setDoctorName(visit.doctorName || "");
+                    }}
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+                    renderInput={(params) => <TextField {...params} label="Visit" />}
+                  />
+                  <Typography variant="body2" sx={{ color: palette.muted, fontWeight: 800, mt: 1.5 }}>
+                    {selectedVisit ? `Visit: ${selectedVisit.visitNumber || "-"}` : "Choose patient to load active visits"}
+                  </Typography>
+                </CardContent>
+              </Card>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Doctor"
-                value={doctorName}
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
-                InputProps={{
-                  readOnly: true,
-                }}
-              />
+
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Card elevation={0} sx={{ ...panelSx, height: "100%" }}>
+                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                    <Avatar sx={{ bgcolor: "#fef3c7", color: palette.amber }}>
+                      <PlaylistAddCheckIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 950, color: palette.ink }}>Ready Check</Typography>
+                      <Typography variant="caption" sx={{ color: palette.muted, fontWeight: 800 }}>Doctor and medicines</Typography>
+                    </Box>
+                  </Stack>
+                  <TextField fullWidth label="Doctor" value={doctorName} sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }} InputProps={{ readOnly: true }} />
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap" useFlexGap>
+                    <Chip color={patientId ? "success" : "default"} size="small" label={patientId ? "Patient selected" : "Patient pending"} sx={{ fontWeight: 850 }} />
+                    <Chip color={visitId ? "success" : "default"} size="small" label={visitId ? "Visit selected" : "Visit pending"} sx={{ fontWeight: 850 }} />
+                    <Chip color={prescriptionItems.length ? "success" : "default"} size="small" label={`${prescriptionItems.length} medicines`} sx={{ fontWeight: 850 }} />
+                  </Stack>
+                </CardContent>
+              </Card>
             </Grid>
           </Grid>
-          <Divider sx={{ my: 3 }} />
 
-          <Typography variant="h6" gutterBottom>
-            Add Medicine
-          </Typography>
+          <Paper elevation={0} sx={{ ...panelSx, p: { xs: 2, md: 2.5 } }}>
+            <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={1.5} sx={{ mb: 2 }}>
+              <Box>
+                <Typography variant="h6" sx={{ color: palette.ink, fontWeight: 950 }}>Add Medicine</Typography>
+                <Typography variant="body2" sx={{ color: palette.muted, fontWeight: 750 }}>Use presets to fill dosage, days and instructions quickly.</Typography>
+              </Box>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {quickPresets.map((preset) => (
+                  <Chip key={preset.label} icon={<TipsAndUpdatesIcon />} label={preset.label} onClick={() => applyQuickPreset(preset)} sx={{ fontWeight: 850, bgcolor: "#eff6ff" }} />
+                ))}
+              </Stack>
+            </Stack>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <FormControl sx={{ flex: 1, minWidth: "280px" }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid size={{ xs: 12, lg: 4 }}>
                 <Autocomplete
                   value={selectedMedicine}
                   options={medicines}
                   getOptionLabel={(option) => option.medicineName || ""}
                   onChange={(e, value) => {
                     setSelectedMedicine(value);
-
                     if (!value) {
-                      setMedicineForm({
-                        ...medicineForm,
-                        medicineId: "",
-                        medicineName: "",
-                        price: 0,
-                      });
+                      setMedicineForm({ ...medicineForm, medicineId: "", medicineName: "", price: 0 });
                       return;
                     }
-
-                    setMedicineForm({
-                      ...medicineForm,
-                      medicineId: value.id,
-                      medicineName: value.medicineName,
-                      price: value.price,
-                    });
+                    setMedicineForm({ ...medicineForm, medicineId: value.id, medicineName: value.medicineName, price: value.price });
                   }}
-                  renderOption={(props, option) => (
-                    <li {...props}>
-                      {option.medicineName}{" "}
-                      <strong>(Stock: {option.stockQuantity || 0})</strong>
-                    </li>
-                  )}
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Medicine" />
-                  )}
+                  renderOption={(props, option) => <li {...props}>{option.medicineName} <strong>(Stock: {option.stockQuantity || 0})</strong></li>}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+                  renderInput={(params) => <TextField {...params} label="Medicine" helperText={selectedMedicine ? `Available stock: ${selectedMedicineStock}` : "Select medicine from stock"} />}
                 />
-              </FormControl>
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, lg: 2 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Dosage</InputLabel>
+                  <Select value={medicineForm.dosage} label="Dosage" sx={{ borderRadius: 2 }} onChange={(e) => setMedicineForm({ ...medicineForm, dosage: e.target.value })}>
+                    {dosageOptions.map((opt) => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, lg: 2 }}>
+                <TextField fullWidth type="number" label="Days" value={medicineForm.days} sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }} onChange={(e) => setMedicineForm({ ...medicineForm, days: e.target.value })} />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 8, lg: 3 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Instructions</InputLabel>
+                  <Select value={medicineForm.instructions} label="Instructions" sx={{ borderRadius: 2 }} onChange={(e) => setMedicineForm({ ...medicineForm, instructions: e.target.value })}>
+                    <MenuItem value="Before Food">Before Food</MenuItem>
+                    <MenuItem value="After Food">After Food</MenuItem>
+                    <MenuItem value="Before Breakfast">Before Breakfast</MenuItem>
+                    <MenuItem value="After Breakfast">After Breakfast</MenuItem>
+                    <MenuItem value="At Bed Time">At Bed Time</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4, lg: 1 }}>
+                <Button fullWidth variant="contained" startIcon={<AddCircleIcon />} onClick={addMedicine} sx={{ minHeight: 54, borderRadius: 2, textTransform: "none", fontWeight: 900, bgcolor: palette.blue }}>
+                  Add
+                </Button>
+              </Grid>
+            </Grid>
+          </Paper>
+
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, lg: 8 }}>
+              <Paper elevation={0} sx={{ ...panelSx, overflow: "hidden" }}>
+                <Box sx={{ p: 2, borderBottom: `1px solid ${palette.line}` }}>
+                  <Typography variant="h6" sx={{ color: palette.ink, fontWeight: 950 }}>Prescription Medicines</Typography>
+                  <Typography variant="body2" sx={{ color: palette.muted, fontWeight: 750 }}>{prescriptionItems.length ? `${prescriptionItems.length} medicines added` : "No medicines added yet"}</Typography>
+                </Box>
+                <TableContainer>
+                  <Table>
+                    <TableHead sx={tableHeadSx}>
+                      <TableRow>
+                        <TableCell>Medicine</TableCell>
+                        <TableCell>Dosage</TableCell>
+                        <TableCell>Days</TableCell>
+                        <TableCell>Instructions</TableCell>
+                        <TableCell align="center">Action</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {prescriptionItems.map((item, index) => (
+                        <TableRow key={`${item.medicineId}-${index}`} hover>
+                          <TableCell sx={{ fontWeight: 850 }}>{item.medicineName}</TableCell>
+                          <TableCell><Chip size="small" label={item.dosage || "-"} sx={{ fontWeight: 850 }} /></TableCell>
+                          <TableCell>{item.days || "-"}</TableCell>
+                          <TableCell>{item.instructions || "-"}</TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="Remove medicine">
+                              <IconButton color="error" onClick={() => setPrescriptionItems(prescriptionItems.filter((_, i) => i !== index))}>
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {!prescriptionItems.length && (
+                        <TableRow>
+                          <TableCell colSpan={5} align="center" sx={{ py: 4, color: palette.muted, fontWeight: 800 }}>
+                            Select a medicine and click Add to build the prescription.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
             </Grid>
 
-            <Grid item xs={12} md={2}>
-              {/* DOSAGE */}
-
-              <FormControl sx={{ flex: 1, minWidth: "200px" }}>
-                <InputLabel>Dosage Pattern</InputLabel>
-
-                <Select
-                  value={medicineForm.dosage}
-                  label="Dosage Pattern"
-                  placeholder="1-0-1"
-                  sx={{ borderRadius: "12px" }}
-                  onChange={(e) =>
-                    setMedicineForm({
-                      ...medicineForm,
-                      dosage: e.target.value,
-                    })
-                  }
-                >
-                  {dosageOptions.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={2}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Days"
-                value={medicineForm.days}
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
-                onChange={(e) =>
-                  setMedicineForm({
-                    ...medicineForm,
-                    days: e.target.value,
-                  })
-                }
-              />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <FormControl sx={{ flex: 1, minWidth: "200px" }}>
-                <InputLabel>Instructions</InputLabel>
-
-                <Select
-                  value={medicineForm.instructions}
-                  label="Instructions"
-                  sx={{ borderRadius: "12px" }}
-                  onChange={(e) =>
-                    setMedicineForm({
-                      ...medicineForm,
-                      instructions: e.target.value,
-                    })
-                  }
-                >
-                  <MenuItem value="Before Food">Before Food</MenuItem>
-
-                  <MenuItem value="After Food">After Food</MenuItem>
-
-                  <MenuItem value="Before Breakfast">Before Breakfast</MenuItem>
-
-                  <MenuItem value="After Breakfast">After Breakfast</MenuItem>
-
-                  <MenuItem value="At Bed Time">At Bed Time</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={1}>
-              <Button
-                variant="contained"
-                startIcon={<AddCircleIcon />}
-                onClick={addMedicine}
-                sx={{
-                  height: 52,
-                  minWidth: 190,
-                  px: 4,
-
-                  borderRadius: "14px",
-                  textTransform: "none",
-
-                  fontSize: "0.95rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.3px",
-
-                  background: "linear-gradient(135deg, #1E40AF, #06B6D4)",
-
-                  color: "#fff",
-
-                  boxShadow: "0 8px 24px rgba(30,64,175,0.25)",
-
-                  transition: "all 0.3s ease",
-
-                  "&:hover": {
-                    transform: "translateY(-2px)",
-                    boxShadow: "0 12px 28px rgba(30,64,175,0.35)",
-
-                    background: "linear-gradient(135deg, #1D4ED8, #0891B2)",
-                  },
-
-                  "&:active": {
-                    transform: "scale(0.98)",
-                  },
-                }}
-              >
-                Add Medicine
-              </Button>
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <Paper elevation={0} sx={{ ...panelSx, p: 2, height: "100%" }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                  <Avatar sx={{ bgcolor: "#ecfdf5", color: palette.green }}>
+                    <LocalPharmacyIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" sx={{ color: palette.ink, fontWeight: 950 }}>Prescription Summary</Typography>
+                    <Typography variant="body2" sx={{ color: palette.muted, fontWeight: 750 }}>Review before saving</Typography>
+                  </Box>
+                </Stack>
+                <Stack spacing={1.5} sx={{ mb: 2 }}>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ color: palette.muted, fontWeight: 800 }}>Patient</Typography><Typography sx={{ fontWeight: 950 }}>{patientName || "-"}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ color: palette.muted, fontWeight: 800 }}>Visit</Typography><Typography sx={{ fontWeight: 950 }}>{selectedVisit?.visitNumber || "-"}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ color: palette.muted, fontWeight: 800 }}>Medicines</Typography><Typography sx={{ fontWeight: 950 }}>{prescriptionItems.length}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ color: palette.muted, fontWeight: 800 }}>Total Days</Typography><Typography sx={{ fontWeight: 950 }}>{totalMedicineDays}</Typography></Stack>
+                </Stack>
+                <TextField fullWidth multiline rows={4} label="Doctor Notes" value={notes} sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: 2 } }} onChange={(e) => setNotes(e.target.value)} />
+                <Button fullWidth variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={!canSavePrescription} sx={{ minHeight: 46, borderRadius: 2, textTransform: "none", fontWeight: 950, bgcolor: palette.green }}>
+                  Save Prescription
+                </Button>
+              </Paper>
             </Grid>
           </Grid>
-
-          <TableContainer component={Paper} sx={{ mt: 3, borderRadius: "12px", border: "1px solid #e0e6ed" }}>
-            <Table>
-              <TableHead
-                sx={{
-                  "& .MuiTableCell-head": {
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: "0.95rem",
-                    background: "linear-gradient(90deg, #1E40AF, #3B82F6) !important",
-                  },
-                }}
-              >
-                <TableRow>
-                  <TableCell>Medicine</TableCell>
-                  <TableCell>Dosage</TableCell>
-                  <TableCell>Days</TableCell>
-                  <TableCell>Instructions</TableCell>
-                  <TableCell align="center">Action</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {prescriptionItems.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{item.medicineName}</TableCell>
-
-                    <TableCell>{item.dosage}</TableCell>
-
-                    <TableCell>{item.days}</TableCell>
-
-                    <TableCell>{item.instructions}</TableCell>
-
-                    <TableCell align="center">
-                      <IconButton
-                        color="error"
-                        onClick={() =>
-                          setPrescriptionItems(
-                            prescriptionItems.filter((_, i) => i !== index),
-                          )
-                        }
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <Box sx={{ mt: 3 }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Notes"
-              value={notes}
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </Box>
-
-          <Box
-            sx={{
-              mt: 3,
-              display: "flex",
-              justifyContent: "flex-end",
-            }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
-              onClick={handleSave}
-              sx={{
-                height: 42,
-                minWidth: 110,
-                px: 4,
-
-                borderRadius: "14px",
-                textTransform: "none",
-
-                fontSize: "0.95rem",
-                fontWeight: 700,
-                letterSpacing: "0.3px",
-
-                background: "linear-gradient(135deg, #10B981, #059669)",
-
-                color: "#fff",
-
-                boxShadow: "0 8px 24px rgba(16,185,129,0.25)",
-
-                transition: "all 0.3s ease",
-
-                "&:hover": {
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 12px 28px rgba(16,185,129,0.35)",
-
-                  background: "linear-gradient(135deg, #059669, #047857)",
-                },
-
-                "&:active": {
-                  transform: "scale(0.98)",
-                },
-              }}
-            >
-              Save Prescription
-            </Button>
-          </Box>
-        </Paper>
+        </Stack>
       )}
 
       {tabValue === 1 && (
-        <Paper sx={{ p: 2 }}>
-          <TextField
-            fullWidth
-            placeholder="Search Patient Name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{
-              mb: 2,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "12px",
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <TableContainer
-            component={Paper}
-            sx={{ borderRadius: "12px", border: "1px solid #e0e6ed" }}
-          >
+        <Paper elevation={0} sx={{ ...panelSx, p: 2 }}>
+          <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} sx={{ mb: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ color: palette.ink, fontWeight: 950 }}>Prescription History</Typography>
+              <Typography variant="body2" sx={{ color: palette.muted, fontWeight: 750 }}>Search previous prescriptions and print copies.</Typography>
+            </Box>
+            <TextField
+              placeholder="Search Patient Name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ width: { xs: "100%", md: 360 }, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
+            />
+          </Stack>
+          <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 2, border: `1px solid ${palette.line}` }}>
             <Table size="small">
-              <TableHead
-                sx={{
-                  "& .MuiTableCell-head": {
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: "0.95rem",
-                    background: "linear-gradient(90deg, #1E40AF, #3B82F6) !important",
-                  },
-                }}
-              >
+              <TableHead sx={tableHeadSx}>
                 <TableRow>
                   <TableCell>ID</TableCell>
-
                   <TableCell>Patient</TableCell>
-
                   <TableCell>Doctor</TableCell>
-
                   <TableCell>Date</TableCell>
-
                   <TableCell>Medicines</TableCell>
-
                   <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
-
               <TableBody>
-                {filteredPrescriptions
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell>{p.id}</TableCell>
-
-                      <TableCell>{p.patientName}</TableCell>
-
-                      <TableCell>{p.doctorName}</TableCell>
-
-                      <TableCell>{p.prescriptionDate}</TableCell>
-
-                      <TableCell>{p.items?.length || 0}</TableCell>
-
-                      <TableCell align="center">
-                        <IconButton color="info" onClick={() => handleView(p)}>
-                          <VisibilityIcon />
-                        </IconButton>
-
-                        <IconButton
-                          color="primary"
-                          onClick={() => generatePrescriptionPDF(p)}
-                        >
-                          <PrintIcon />
-                        </IconButton>
-
-                        <IconButton
-                          color="warning"
-                          onClick={() => handleEdit(p)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDelete(p.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                {filteredPrescriptions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((p) => (
+                  <TableRow key={p.id} hover>
+                    <TableCell sx={{ fontWeight: 850 }}>RX-{p.id}</TableCell>
+                    <TableCell sx={{ fontWeight: 850 }}>{p.patientName}</TableCell>
+                    <TableCell>{p.doctorName}</TableCell>
+                    <TableCell>{formatDateTime(p.prescriptionDate)}</TableCell>
+                    <TableCell><Chip size="small" label={p.items?.length || 0} sx={{ fontWeight: 850 }} /></TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="View"><IconButton color="info" onClick={() => handleView(p)}><VisibilityIcon /></IconButton></Tooltip>
+                      <Tooltip title="Print"><IconButton color="primary" onClick={() => generatePrescriptionPDF(p)}><PrintIcon /></IconButton></Tooltip>
+                      <Tooltip title="Edit"><IconButton color="warning" onClick={() => handleEdit(p)}><EditIcon /></IconButton></Tooltip>
+                      <Tooltip title="Delete"><IconButton color="error" onClick={() => handleDelete(p.id)}><DeleteIcon /></IconButton></Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {!filteredPrescriptions.length && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4, color: palette.muted, fontWeight: 800 }}>No prescriptions found.</TableCell></TableRow>}
               </TableBody>
             </Table>
             <TablePagination
@@ -1132,7 +1052,6 @@ export default function Prescriptions() {
           </TableContainer>
         </Paper>
       )}
-
       <Dialog
          open={viewOpen}
          onClose={() => setViewOpen(false)}
@@ -1243,7 +1162,7 @@ export default function Prescriptions() {
 
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="Patient"
@@ -1254,7 +1173,7 @@ export default function Prescriptions() {
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="Visit"
@@ -1265,7 +1184,7 @@ export default function Prescriptions() {
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="Doctor"
@@ -1285,7 +1204,7 @@ export default function Prescriptions() {
             </Typography>
 
             <Grid container spacing={2}>
-              <Grid item xs={12} md={8}>
+              <Grid size={{ xs: 12, md: 8 }}>
                 <FormControl sx={{ flex: 1, minWidth: "280px" }}>
                   <Autocomplete
                     options={medicines}
@@ -1300,7 +1219,7 @@ export default function Prescriptions() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Button
                   fullWidth
                   variant="contained"
@@ -1453,3 +1372,7 @@ export default function Prescriptions() {
     </Box>
   );
 }
+
+
+
+

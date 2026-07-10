@@ -1,382 +1,508 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+
 import {
   Box,
   Paper,
   Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
+  Button,
+  Grid,
   Stack,
   Chip,
-  Alert,
-  Card,
-  CardContent,
-  InputAdornment,
+  Avatar,
   Divider,
+  InputAdornment,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  MenuItem,
 } from "@mui/material";
 
-import Grid from "@mui/material/Grid";
-
-import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
+import AddIcon from "@mui/icons-material/Add";
 import PersonIcon from "@mui/icons-material/Person";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
-import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
-import GroupsIcon from "@mui/icons-material/Groups";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import SaveIcon from "@mui/icons-material/Save";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 
 import api from "../services/api";
 
-// const res = api.create({
-//   baseURL: "/api",
-//   headers: {
-//     Authorization: `Bearer ${localStorage.getItem("token")}`,
-//   },
-// });
-
 export default function UserMaster() {
   const [users, setUsers] = useState([]);
-  const [allPrivileges, setAllPrivileges] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
 
-  const [formData, setFormData] = useState({
+  const [privileges, setPrivileges] = useState([]);
+
+  const [groupedPrivileges, setGroupedPrivileges] = useState({});
+
+  const [selectedPrivileges, setSelectedPrivileges] = useState([]);
+
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  const [loadingPrivileges, setLoadingPrivileges] = useState(false);
+
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [userSearch, setUserSearch] = useState("");
+
+  const [privilegeSearch, setPrivilegeSearch] = useState("");
+
+  const [editingUserId, setEditingUserId] = useState(null);
+
+  const [expandedModule, setExpandedModule] = useState("DASHBOARD");
+
+  const [userForm, setUserForm] = useState({
     username: "",
     password: "",
-    role: "STAFF",
-    selectedPrivileges: [],
+    role: "RECEPTION",
+    status: "ACTIVE",
   });
 
   useEffect(() => {
-    fetchData();
+    loadUsers();
+    loadPrivileges();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const usersRes = await api.get("api/users");
-
-      setUsers(usersRes.data);
-    } catch (e) {
-      console.error("Users Error", e);
-    }
-
-    try {
-      const privsRes = await api.get("api/privileges");
-
-      console.log(privsRes.data);
-
-      setAllPrivileges(privsRes.data);
-    } catch (e) {
-      console.error("Privileges Error", e);
-    }
-  };
-  const handleOpen = () => {
-    setFormData({
-      username: "",
-      password: "",
-      role: "STAFF",
-      selectedPrivileges: [],
+  const [notification, setNotification] = useState({
+      open: false,
+      message: "",
+      severity: "success",
     });
 
-    setOpen(true);
+   const showNotification = (message, severity = "success") => {
+    setNotification({
+      open: true,
+      message,
+      severity,
+    });
   };
 
-  const handleClose = () => setOpen(false);
+  const loadPrivileges = async () => {
+    try {
+      setLoadingPrivileges(true);
 
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
+      const res = await api.get("api/privileges");
+      console.log("setPrivileges", res.data);
+console.log(res.data);
+      setPrivileges(res.data);
+
+      groupPrivileges(res.data);
+    } finally {
+      setLoadingPrivileges(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+
+      const res = await api.get("api/users");
+
+      setUsers(res.data);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+  const groupPrivileges = (data) => {
+    const grouped = {};
+
+    data.forEach((item) => {
+      const module = item.module || "OTHER";
+
+      if (!grouped[module]) {
+        grouped[module] = [];
+      }
+
+      grouped[module].push(item);
+    });
+
+    setGroupedPrivileges(grouped);
+  };
+
+  const getPrivilegeLabel = (priv) => {
+  return (
+    priv.description ||
+    priv.pageName ||
+    priv.pageLink ||
+    priv.privilegeName ||
+    priv.module ||
+    "Unknown"
+  );
+};
+
+  const filteredUsers = users.filter((user) =>
+    (user.username || "").toLowerCase().includes(userSearch.toLowerCase()),
+  );
+
+  const roleTemplates = {
+    ADMIN: privileges.map((item) => item.id),
+
+    DOCTOR: privileges
+      .filter((item) =>
+        ["DOCTOR", "PRESCRIPTION", "PATIENT", "APPOINTMENT"].includes(
+          item.module,
+        ),
+      )
+      .map((item) => item.id),
+
+    RECEPTION: privileges
+      .filter((item) =>
+        ["PATIENT", "APPOINTMENT", "BILLING"].includes(item.module),
+      )
+      .map((item) => item.id),
+
+    STAFF: [],
+  };
+
+  const handlePrivilegeToggle = (id) => {
+    setSelectedPrivileges((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id);
+      }
+
+      return [...prev, id];
+    });
+  };
+
+
+  const handleModuleToggle = (module) => {
+    const modulePrivileges = groupedPrivileges[module].map(
+      (item) => item.id,
+    );
+
+    const allSelected = modulePrivileges.every((id) =>
+      selectedPrivileges.includes(id),
+    );
+
+    if (allSelected) {
+      setSelectedPrivileges(
+        selectedPrivileges.filter((id) => !modulePrivileges.includes(id)),
+      );
+    } else {
+      setSelectedPrivileges([
+        ...new Set([...selectedPrivileges, ...modulePrivileges]),
+      ]);
+    }
+  };
+
+  const isModuleSelected = (module) => {
+    const modulePrivileges =
+      groupedPrivileges[module]?.map((item) => item.id) || [];
+
+    return (
+      modulePrivileges.length > 0 &&
+      modulePrivileges.every((id) => selectedPrivileges.includes(id))
+    );
+  };
+
+  const getModuleCount = (module) => {
+    const modulePrivileges =
+      groupedPrivileges[module]?.map((item) => item.id) || [];
+
+    const selected = modulePrivileges.filter((id) =>
+      selectedPrivileges.includes(id),
+    );
+
+    return `${selected.length}/${modulePrivileges.length}`;
+  };
+
+  const filterPrivileges = (module) => {
+    return groupedPrivileges[module].filter((priv) => {
+      const name = getPrivilegeLabel(priv);
+
+      return name.toLowerCase().includes(privilegeSearch.toLowerCase());
+    });
+  };
+
+  const handleUserChange = (e) => {
+    setUserForm({
+      ...userForm,
+
       [e.target.name]: e.target.value,
     });
   };
 
-  const handlePrivilegeChange = (id) => {
-    const current = [...formData.selectedPrivileges];
+  const handleRoleChange = (e) => {
+    const role = e.target.value;
 
-    const index = current.indexOf(id);
+    setUserForm({
+      ...userForm,
 
-    if (index === -1) {
-      current.push(id);
-    } else {
-      current.splice(index, 1);
-    }
-
-    setFormData({
-      ...formData,
-      selectedPrivileges: current,
+      role: role,
     });
+
+    if (roleTemplates[role]) {
+      setSelectedPrivileges(roleTemplates[role]);
+    } else {
+      setSelectedPrivileges(roleTemplates.RECEPTION);
+    }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const openCreateUser = () => {
+    setUserForm({
+      username: "",
+      password: "",
+      role: "RECEPTION",
+      status: "ACTIVE",
+    });
 
+    setSelectedPrivileges([]);
+
+    setOpenUserDialog(true);
+  };
+
+  const toggleStatus = async (user) => {
     const payload = {
-      username: formData.username,
-      password: formData.password,
-      role: formData.role,
-      privileges: formData.selectedPrivileges.map((id) => ({
-        id,
-      })),
+      username: user.username,
+
+      role: user.role,
+
+      status: user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
     };
 
     try {
-      if (editingId) {
-        await api.put(`api/users/${editingId}`, payload);
+      await api.put(
+        `api/users/${user.id}`,
+
+        payload,
+      );
+
+      loadUsers();
+    } catch (error) {
+      console.error("Status Update Error", error);
+    }
+  };
+
+
+  const saveUser = async () => {
+    const payload = {
+      username: userForm.username,
+
+      password: userForm.password,
+
+      role: userForm.role,
+
+      status: userForm.status,
+
+      privileges: selectedPrivileges.map((id) => ({
+        id: id,
+      })),
+    };
+
+    console.log("payload" , payload)
+    try {
+      if (editingUserId) {
+        await api.put(
+          `api/users/${editingUserId}`,
+
+          payload,
+        );
+        showNotification("User Updated Successfully", "success");
       } else {
-        await api.post("api/users", payload);
+        await api.post(
+          "api/users",
+
+          payload,
+        );
+        showNotification("User Saved Successfully", "success");
       }
 
-      handleClose();
-      fetchData();
-    } catch (err) {
-      setError("Failed to save user");
+      loadUsers();
+
+      setEditingUserId(null);
+
+    } catch (error) {
+      console.error("Save User Error", error);
+      showNotification("Failed to save user", "error");
     }
   };
 
-  const filteredUsers = users.filter((u) =>
-    u.username?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const editUser = (user) => {
+    setSelectedUser(user);
 
-  const totalUsers = users.length;
-  const adminCount = users.filter((u) => u.role === "ADMIN").length;
-  const doctorCount = users.filter((u) => u.role === "DOCTOR").length;
-  const staffCount = users.filter((u) => u.role === "STAFF").length;
+    setEditingUserId(user.id);
 
-  console.log("allPrivileges State =", allPrivileges);
-
-  const handleSelectAll = () => {
-    setFormData({
-      ...formData,
-      selectedPrivileges: allPrivileges.map((p) => p.id),
-    });
-  };
-
-  const handleDeselectAll = () => {
-    setFormData({
-      ...formData,
-      selectedPrivileges: [],
-    });
-  };
-
-  const [editingId, setEditingId] = useState(null);
-
-  const handleEdit = (user) => {
-    setEditingId(user.id);
-
-    setFormData({
-      username: user.username,
+    setUserForm({
+      username: user.username || "",
       password: "",
-      role: user.role,
-      selectedPrivileges: user.privileges?.map((p) => p.id) || [],
+      role: user.role || "RECEPTION",
+      status: user.status || "ACTIVE",
     });
 
-    setOpen(true);
+    setSelectedPrivileges(user.privileges?.map((p) => p.id) || []);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this user?")) {
-      return;
-    }
+  const createNewUser = () => {
+    setSelectedUser(null);
 
+    setEditingUserId(null);
+
+    setSelectedPrivileges([]);
+
+    setUserForm({
+      username: "",
+      password: "",
+      role: "RECEPTION",
+      status: "ACTIVE",
+    });
+  };
+
+  const openDeleteDialog = (id) => {
+    setDeleteUserId(id);
+
+    setDeleteDialog(true);
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteUserId(null);
+
+    setDeleteDialog(false);
+  };
+
+  const deleteUser = async () => {
     try {
-      await api.delete(`api/users/${id}`);
+      await api.delete(`api/users/${deleteUserId}`);
 
-      fetchData();
-    } catch (err) {
-      setError("Failed to delete user");
+      loadUsers();
+
+      closeDeleteDialog();
+    } catch (error) {
+      console.error("Delete User Error", error);
     }
   };
 
   return (
-    <Box>
-      {/* SUMMARY CARDS */}
+    <Box sx={{ p: 3, background: "#F4F7FB", minHeight: "100vh" }}>
+      {/* HEADER */}
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 1.5,
-            flex: 1,
-            minWidth: "150px",
-            background: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)",
-            color: "#fff",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(30,58,138,0.08)",
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ opacity: 0.8, fontWeight: 700, display: "block" }}
-          >
-            Total Users
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
+        <Box>
+          <Typography Typography variant="h4" fontWeight={800} color="#1E3A8A">
+            User Master
           </Typography>
 
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {totalUsers}
+          <Typography color="text.secondary">
+            Manage Users, Roles & Privilege Management
+          </Typography>
+        </Box>
+      </Stack>
+
+      <Stack direction={{ xs: "column", md: "row" }} spacing={2} mb={3}>
+        <Paper
+          sx={{
+            flex: 1,
+            p: 2,
+            borderRadius: 3,
+            background: "linear-gradient(135deg,#2563EB,#3B82F6)",
+            color: "#fff",
+          }}
+        >
+          <Typography variant="body2">Total Users</Typography>
+          <Typography variant="h4" fontWeight={700}>
+            {users.length}
           </Typography>
         </Paper>
 
         <Paper
-          elevation={0}
           sx={{
-            p: 1.5,
             flex: 1,
-            minWidth: "150px",
-            background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)",
+            p: 2,
+            borderRadius: 3,
+            background: "linear-gradient(135deg,#16A34A,#22C55E)",
             color: "#fff",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(13,148,136,0.08)",
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{ opacity: 0.8, fontWeight: 700, display: "block" }}
-          >
-            Admins
-          </Typography>
-
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {adminCount}
+          <Typography variant="body2">Active Users</Typography>
+          <Typography variant="h4" fontWeight={700}>
+            {users.filter((u) => u.status === "ACTIVE").length}
           </Typography>
         </Paper>
 
         <Paper
-          elevation={0}
           sx={{
-            p: 1.5,
             flex: 1,
-            minWidth: "150px",
-            background: "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)",
+            p: 2,
+            borderRadius: 3,
+            background: "linear-gradient(135deg,#F59E0B,#FBBF24)",
             color: "#fff",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(245,158,11,0.08)",
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{ opacity: 0.8, fontWeight: 700, display: "block" }}
-          >
-            Doctors
-          </Typography>
-
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {doctorCount}
+          <Typography variant="body2">Administrators</Typography>
+          <Typography variant="h4" fontWeight={700}>
+            {users.filter((u) => u.role === "ADMIN").length}
           </Typography>
         </Paper>
 
         <Paper
-          elevation={0}
           sx={{
-            p: 1.5,
             flex: 1,
-            minWidth: "150px",
-            background: "linear-gradient(135deg, #b40984 0%, #f59e0b 100%)",
+            p: 2,
+            borderRadius: 3,
+            background: "linear-gradient(135deg,#7C3AED,#8B5CF6)",
             color: "#fff",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(245,158,11,0.08)",
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{ opacity: 0.8, fontWeight: 700, display: "block" }}
-          >
-            Staff
-          </Typography>
-
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {staffCount}
+          <Typography variant="body2">Privileges</Typography>
+          <Typography variant="h4" fontWeight={700}>
+            {privileges.length}
           </Typography>
         </Paper>
-         </Box>
+      </Stack>
 
-        <Divider sx={{ mb: 3 }} />
+      <Divider sx={{ mb: 3 }} />
 
-        {/* MAIN PANEL */}
-
-        <Paper
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          mb: 2,
+        }}
+      >
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={createNewUser}
           sx={{
-            p: 3,
-            borderRadius: 4,
-
-            background: "rgba(255,255,255,0.75)",
-
-            backdropFilter: "blur(12px)",
-
-            border: "1px solid rgba(255,255,255,0.4)",
-
-            boxShadow: "0 8px 32px rgba(15,23,42,0.08)",
+            height: 46,
+            borderRadius: 3,
+            px: 3,
+            textTransform: "none",
+            fontWeight: 700,
           }}
         >
-          <Box
+          New User
+        </Button>
+      </Box>
+
+      <Grid container spacing={3}>
+        {/* LEFT PANEL */}
+
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper
             sx={{
-              display: "flex",
-              justifyContent: "flex-end",
-              mb: 2,
+              borderRadius: 4,
+              p: 2.5,
+              height: "82vh",
+              overflow: "auto",
             }}
           >
-            <Button
-              variant="contained"
-              startIcon={<AddCircleIcon />}
-              onClick={handleOpen}
-              sx={{
-                minWidth: 170,
-                height: 50,
+            <Typography variant="h6" fontWeight={700} mb={2}>
+              Users
+            </Typography>
 
-                borderRadius: "14px",
-                textTransform: "none",
-
-                fontSize: "0.95rem",
-                fontWeight: 700,
-
-                background: "linear-gradient(135deg, #10B981, #059669)",
-
-                boxShadow: "0 8px 24px rgba(16,185,129,0.25)",
-
-                transition: "all 0.3s ease",
-
-                "&:hover": {
-                  background: "linear-gradient(135deg, #1E40AF, #06B6D4)",
-
-                  transform: "translateY(-2px)",
-
-                  boxShadow: "0 12px 28px rgba(30,64,175,0.30)",
-                },
-
-                "&:active": {
-                  transform: "scale(0.98)",
-                },
-              }}
-            >
-              Create User
-            </Button>
-          </Box>
-
-          <Stack direction="row" spacing={2} mb={3}>
             <TextField
               fullWidth
               size="small"
-              placeholder="Search Username..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search User..."
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -385,291 +511,377 @@ export default function UserMaster() {
                 ),
               }}
             />
-          </Stack>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <TableContainer component={Paper}>
-            <Table size="small">
-              <TableHead
-                sx={{ background: "linear-gradient(90deg,#1E40AF,#3B82F6)" }}
-              >
-                <TableRow
-                  sx={{ background: "linear-gradient(90deg,#1E40AF,#3B82F6)" }}
+            <Stack spacing={2} mt={3}>
+              {filteredUsers.length === 0 ? (
+                <Paper
+                  sx={{
+                    p: 5,
+                    textAlign: "center",
+                    borderRadius: 3,
+                    background: "#F9FAFB",
+                  }}
                 >
-                  <TableCell>
-                    <b>Username</b>
-                  </TableCell>
+                  <PersonIcon
+                    sx={{
+                      fontSize: 50,
+                      color: "#9CA3AF",
+                    }}
+                  />
 
-                  <TableCell>
-                    <b>Role</b>
-                  </TableCell>
+                  <Typography mt={2}>No Users Found</Typography>
+                </Paper>
+              ) : (
+                filteredUsers.map((user) => (
+                  <Paper
+                    key={user.id}
+                    elevation={0}
+                    onClick={() => editUser(user)}
+                    sx={{
+                      p: 2,
+                      cursor: "pointer",
+                      borderRadius: 3,
+                      border:
+                        selectedUser?.id === user.id
+                          ? "2px solid #1976d2"
+                          : "1px solid #E5E7EB",
 
-                  <TableCell>
-                    <b>Privileges</b>
-                  </TableCell>
-                  <TableCell align="center">
-                    <b>Actions</b>
-                  </TableCell>
-                </TableRow>
-              </TableHead>
+                      transition: ".25s",
 
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <PersonIcon color="primary" />
-                        {user.username}
-                      </Stack>
-                    </TableCell>
+                      "&:hover": {
+                        borderColor: "#1976d2",
+                        transform: "translateY(-2px)",
+                      },
+                    }}
+                  >
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Avatar sx={{ bgcolor: "#1976d2" }}>
+                        <Typography fontWeight="700" fontSize={22}>
+                          {(user.username || "U").charAt(0).toUpperCase()}
+                        </Typography>
+                      </Avatar>
 
-                    <TableCell>
-                      <Chip
-                        label={user.role}
-                        color={
-                          user.role === "ADMIN"
-                            ? "error"
-                            : user.role === "DOCTOR"
-                              ? "primary"
-                              : "success"
-                        }
-                      />
-                    </TableCell>
+                      <Box flex={1}>
+                        <Typography fontWeight={700}>
+                          {user.username}
+                        </Typography>
 
-                    <TableCell sx={{ maxWidth: 350 }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: 0.5,
-                        }}
-                      >
-                        {user.privileges?.length > 0 ? (
-                          user.privileges.map((p) => (
-                            <Chip
-                              key={p.id}
-                              label={p.pageLink.replace("/", "")}
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                              sx={{
-                                fontSize: "11px",
-                                height: 24,
-                              }}
-                            />
-                          ))
-                        ) : (
-                          <Typography variant="caption">
-                            No Privileges
-                          </Typography>
-                        )}
+                        <Stack direction="row" spacing={1} mt={0.5}>
+                          <Chip
+                            size="small"
+                            label={user.role}
+                            color="primary"
+                          />
+
+                          <Chip
+                            size="small"
+                            label={user.status}
+                            color={
+                              user.status === "ACTIVE" ? "success" : "error"
+                            }
+                          />
+                        </Stack>
                       </Box>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="Edit User">
-                        <IconButton
-                          color="primary"
-                          onClick={() => handleEdit(user)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
+                    </Stack>
+                  </Paper>
+                ))
+              )}
+            </Stack>
+          </Paper>
+        </Grid>
 
-                      <Tooltip title="Delete User">
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDelete(user.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+        {/* RIGHT PANEL */}
 
-        {/* CREATE USER */}
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Paper
+            sx={{
+              borderRadius: 4,
+              p: 3,
+              minHeight: "82vh",
+            }}
+          >
+            <Stack direction="row" spacing={2} alignItems="center" mb={3}>
+              <Avatar
+                sx={{
+                  width: 60,
+                  height: 60,
+                  bgcolor: "#1976d2",
+                }}
+              >
+                <PersonIcon fontSize="large" />
+              </Avatar>
 
-        <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-          <form onSubmit={handleSubmit}>
-            <DialogTitle>
-              {editingId ? "Edit User" : "Create New User"}
-            </DialogTitle>
+              <Box>
+                <Typography variant="h5" fontWeight={700}>
+                  {editingUserId ? "Edit User" : "Create User"}
+                </Typography>
 
-            <DialogContent dividers>
-              <Stack spacing={2}>
+                <Typography color="text.secondary">
+                  Configure user details and permissions
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Grid container spacing={2}>
+              <Grid xs={12} md={6}>
                 <TextField
+                  fullWidth
                   label="Username"
                   name="username"
-                  fullWidth
-                  value={formData.username}
-                  onChange={handleInputChange}
+                  value={userForm.username}
+                  onChange={handleUserChange}
                 />
+              </Grid>
 
+              <Grid xs={12} md={6}>
                 <TextField
-                  label="Password"
-                  name="password"
-                  type="password"
                   fullWidth
-                  value={formData.password}
-                  onChange={handleInputChange}
+                  label="Password"
+                  type="password"
+                  name="password"
+                  value={userForm.password}
+                  onChange={handleUserChange}
                 />
+              </Grid>
 
+              <Grid xs={12} md={6}>
                 <TextField
                   select
+                  fullWidth
                   label="Role"
                   name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
+                  value={userForm.role}
+                  onChange={handleRoleChange}
                 >
                   <MenuItem value="ADMIN">ADMIN</MenuItem>
 
                   <MenuItem value="DOCTOR">DOCTOR</MenuItem>
 
+                  <MenuItem value="RECEPTION">Reception</MenuItem>
+
                   <MenuItem value="STAFF">STAFF</MenuItem>
                 </TextField>
+              </Grid>
 
-                <Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mb: 2,
-                    }}
-                  >
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      Assign Privileges
-                    </Typography>
+              <Grid xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Status"
+                  name="status"
+                  value={userForm.status}
+                  onChange={handleUserChange}
+                >
+                  <MenuItem value="ACTIVE">Active</MenuItem>
 
-                    <Stack direction="row" spacing={1}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handleSelectAll}
-                      >
-                        Select All
-                      </Button>
+                  <MenuItem value="INACTIVE">Inactive</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
 
-                      <Button
-                        size="small"
-                        color="error"
-                        variant="outlined"
-                        onClick={handleDeselectAll}
-                      >
-                        Clear All
-                      </Button>
-                    </Stack>
-                  </Box>
+            <Divider sx={{ my: 4 }} />
 
-                  <Grid container spacing={1}>
-                    {allPrivileges.map((priv) => (
-                      <Grid item xs={12} sm={6} md={3} key={priv.id}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              size="small"
-                              checked={formData.selectedPrivileges.includes(
-                                priv.id,
-                              )}
-                              onChange={() => handlePrivilegeChange(priv.id)}
-                            />
-                          }
-                          label={
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontSize: "0.85rem",
-                              }}
-                            >
-                              {priv.pageLink.replace("/", "")}
-                            </Typography>
-                          }
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
+            {/* PART 3 WILL START HERE */}
+
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" fontWeight={700} mb={2}>
+                Privilege Management
+              </Typography>
+
+              <Stack
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                sx={{ mb: 3 }}
+              >
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Search Privilege..."
+                  value={privilegeSearch}
+                  onChange={(e) => setPrivilegeSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <Button
+                  variant="outlined"
+                  onClick={() =>
+                    setSelectedPrivileges(privileges.map((p) => p.id))
+                  }
+                >
+                  Select All
+                </Button>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => setSelectedPrivileges([])}
+                >
+                  Clear All
+                </Button>
               </Stack>
-            </DialogContent>
 
-            <DialogActions
+              <Paper
+                variant="outlined"
+                sx={{
+                  borderRadius: 3,
+                  overflow: "hidden",
+                }}
+              >
+                {Object.entries(groupedPrivileges).map(([module, items]) => {
+                  const filteredItems = items.filter((priv) => {
+                    return getPrivilegeLabel(priv)
+                      .toLowerCase()
+                      .includes(privilegeSearch.toLowerCase());
+                  });
+
+                  if (privilegeSearch && filteredItems.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <Accordion
+                      key={module}
+                      disableGutters
+                      elevation={0}
+                      expanded={expandedModule === module}
+                      onChange={() =>
+                        setExpandedModule(
+                          expandedModule === module ? null : module,
+                        )
+                      }
+                      sx={{
+                        "&:before": {
+                          display: "none",
+                        },
+                        borderBottom: "1px solid #E5E7EB",
+                      }}
+                    >
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          minHeight: 56,
+                          "& .MuiAccordionSummary-content": {
+                            margin: 0,
+                          },
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          width="100%"
+                        >
+                          <Typography fontWeight={700}>{module}</Typography>
+
+                          <Chip
+                            size="small"
+                            color="primary"
+                            label={getModuleCount(module)}
+                          />
+                        </Stack>
+                      </AccordionSummary>
+
+                      <AccordionDetails
+                        sx={{
+                          background: "#FAFAFA",
+                        }}
+                      >
+                        <Grid container spacing={1}>
+                          {filteredItems.map((priv) => (
+                            <Grid size={{ xs: 12, md: 6 }} key={priv.id}>
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={selectedPrivileges.includes(
+                                      priv.id,
+                                    )}
+                                    onChange={() =>
+                                      handlePrivilegeToggle(priv.id)
+                                    }
+                                  />
+                                }
+                                label={getPrivilegeLabel(priv)}
+                              />
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })}
+              </Paper>
+            </Box>
+
+            <Box
               sx={{
-                p: 3,
-                gap: 1.5,
-                justifyContent: "flex-end",
+                position: "sticky",
+                bottom: 0,
+                background: "#fff",
+                pt: 2,
+                pb: 1,
+                mt: 3,
+                borderTop: "1px solid #E5E7EB",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
               <Button
-                onClick={handleClose}
-                sx={{
-                  height: 44,
-                  px: 3,
-
-                  borderRadius: "12px",
-                  textTransform: "none",
-
-                  fontSize: "0.9rem",
-                  fontWeight: 700,
-
-                  color: "#EF4444",
-
-                  "&:hover": {
-                    backgroundColor: "#FEF2F2",
-                    color: "#DC2626",
-                  },
-                }}
-              >
-                Cancel
-              </Button>
-
-              <Button
-                type="submit"
+                disableElevation
                 variant="contained"
-                startIcon={editingId ? <EditIcon /> : <SaveIcon />}
+                size="large"
+                onClick={saveUser}
                 sx={{
-                  minWidth: 150,
-                  height: 44,
-
-                  borderRadius: "12px",
+                  px: 5,
+                  height: 48,
+                  borderRadius: 3,
                   textTransform: "none",
-
-                  fontSize: "0.9rem",
                   fontWeight: 700,
-
-                  background: editingId
-                    ? "linear-gradient(135deg, #06B6D4, #0891B2)"
-                    : "linear-gradient(135deg, #10B981, #059669)",
-
-                  boxShadow: editingId
-                    ? "0 8px 20px rgba(6,182,212,0.25)"
-                    : "0 8px 20px rgba(16,185,129,0.25)",
-
-                  transition: "all 0.3s ease",
+                  background: "linear-gradient(135deg,#2563EB,#1D4ED8)",
 
                   "&:hover": {
-                    background: "linear-gradient(135deg, #1E40AF, #06B6D4)",
-
-                    transform: "translateY(-2px)",
-
-                    boxShadow: "0 12px 28px rgba(30,64,175,0.30)",
+                    background: "linear-gradient(135deg,#1D4ED8,#1E40AF)",
                   },
                 }}
               >
-                {editingId ? "Update User" : "Save User"}
+                {editingUserId ? "Update User" : "Save User"}
               </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
-     
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Snackbar
+              open={notification.open}
+              autoHideDuration={3000}
+              onClose={() =>
+                setNotification({
+                  ...notification,
+                  open: false,
+                })
+              }
+              anchorOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+            >
+              <Alert
+                severity={notification.severity}
+                variant="filled"
+                sx={{ width: "100%" }}
+              >
+                {notification.message}
+              </Alert>
+            </Snackbar>
     </Box>
   );
 }

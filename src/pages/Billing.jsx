@@ -61,6 +61,11 @@ export default function PatientBilling() {
   const [subtotal, setSubtotal] = useState(0);
   //  const [grandTotal, setGrandTotal] = useState(0);
   const [paymentMode, setPaymentMode] = useState("CASH");
+  const [splitPayment, setSplitPayment] = useState({
+    cashAmount: "",
+    upiAmount: "",
+    cardAmount: "",
+  });
 
   const [notification, setNotification] = useState({
     open: false,
@@ -149,7 +154,6 @@ export default function PatientBilling() {
     additionalCharges: [],
     physioItems: [],
     opdItems: [],
-    admissionFee: 0,
     totalAmount: 0,
     bedCharge: 0,
     discount: 0,
@@ -199,20 +203,21 @@ export default function PatientBilling() {
       0,
     ) || 0;
 
-  const admissionTotal = Number(billData.admissionFee || 0);
-
   const bedTotal = Number(billData.bedCharge || 0);
 
   const subtotalAmount =
     medicineTotal +
     labTotal +
     physioTotal +
-    admissionTotal +
     bedTotal +
     opdTotal +
     additionalTotal;
 
   const grandTotalAmount = subtotalAmount - Number(discount || 0);
+  const splitPaymentTotal =
+    Number(splitPayment.cashAmount || 0) +
+    Number(splitPayment.upiAmount || 0) +
+    Number(splitPayment.cardAmount || 0);
 
   const [loading, setLoading] = useState(false);
 
@@ -309,7 +314,6 @@ export default function PatientBilling() {
           res.data.additionalCharges?.length > 0
             ? res.data.additionalCharges
             : additionalCharges,
-        admissionFee: safeNumber(res.data.admissionFee),
         totalAmount: safeNumber(res.data.totalAmount),
         bedCharge: safeNumber(res.data.bedCharge),
         discount: safeNumber(res.data.discount),
@@ -332,7 +336,16 @@ export default function PatientBilling() {
       alert("Please select visit");
       return;
     }
-console.log("paymentMode", paymentMode);
+    if (
+      paymentMode === "SPLIT" &&
+      Math.abs(splitPaymentTotal - grandTotalAmount) > 0.01
+    ) {
+      showNotification(
+        `Split total (Rs. ${splitPaymentTotal.toFixed(2)}) must equal Net Payable (Rs. ${grandTotalAmount.toFixed(2)}).`,
+        "warning",
+      );
+      return;
+    }
     try {
       const res = await api.post("/api/bills/generate", {
         visitId: selectedVisitId, 
@@ -340,6 +353,9 @@ console.log("paymentMode", paymentMode);
         additionalCharges,
         discount: discount,
         paymentMode,
+        cashAmount: paymentMode === "SPLIT" ? Number(splitPayment.cashAmount || 0) : 0,
+        upiAmount: paymentMode === "SPLIT" ? Number(splitPayment.upiAmount || 0) : 0,
+        cardAmount: paymentMode === "SPLIT" ? Number(splitPayment.cardAmount || 0) : 0,
       });
 
       setBillData({
@@ -351,7 +367,6 @@ console.log("paymentMode", paymentMode);
           res.data.additionalCharges?.length > 0
             ? res.data.additionalCharges
             : additionalCharges,
-        admissionFee: safeNumber(res.data.admissionFee),
         totalAmount: safeNumber(res.data.totalAmount),
         bedCharge: safeNumber(res.data.bedCharge),
         subtotal: safeNumber(res.data.subtotal),
@@ -541,32 +556,6 @@ console.log("paymentMode", paymentMode);
       let serialNo = 1;
 
       // // ============================================
-      // // Admission
-      // // ============================================
-
-      if (billData.admissionFee > 0) {
-        tableBody.push([
-          {
-            content: "ADMISSION CHARGES",
-            colSpan: 5,
-            styles: {
-              fillColor: [219, 234, 254],
-              textColor: [30, 58, 138],
-              fontStyle: "bold",
-              halign: "left",
-            },
-          },
-        ]);
-
-        tableBody.push([
-          serialNo++,
-          "Admission Fee",
-          "1",
-          safeNumber(billData.admissionFee).toFixed(2),
-          safeNumber(billData.admissionFee).toFixed(2),
-        ]);
-      }
-
       // ============================================
       // BED CHARGES
       // ============================================
@@ -1260,45 +1249,6 @@ console.log("paymentMode", paymentMode);
 
               <TableBody>
                 {/* ========================================= */}
-                {/* ADMISSION */}
-                {/* ========================================= */}
-
-                {billData.admissionFee > 0 && (
-                  <>
-                    <TableRow
-                      sx={{
-                        backgroundColor: "#dbeafe",
-                      }}
-                    >
-                      <TableCell
-                        colSpan={4}
-                        sx={{
-                          fontWeight: "bold",
-                          color: "#1e3a8a",
-                          fontSize: "14px",
-                          borderBottom: "none",
-                        }}
-                      >
-                        ADMISSION CHARGES
-                      </TableCell>
-                    </TableRow>
-
-                    <TableRow>
-                      <TableCell>Admission Fee</TableCell>
-
-                      <TableCell align="center">1</TableCell>
-
-                      <TableCell align="right">
-                        ₹{safeNumber(billData.admissionFee).toFixed(2)}
-                      </TableCell>
-
-                      <TableCell align="right">
-                        ₹{safeNumber(billData.admissionFee).toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                  </>
-                )}
-                {/* ========================================= */}
                 {/* BED CHARGES */}
                 {/* ========================================= */}
 
@@ -1601,8 +1551,8 @@ console.log("paymentMode", paymentMode);
                   sx={{
                     backgroundColor: "#fefce8",
                   }}
-                ></TableRow>
-                <TableCell colSpan={3}>Payment Mode</TableCell>
+                >
+                  <TableCell colSpan={3}>Payment Mode</TableCell>
                 <TableCell align="right">
                   <TextField
                     select
@@ -1614,9 +1564,67 @@ console.log("paymentMode", paymentMode);
                     <MenuItem value="CASH">Cash</MenuItem>
                     <MenuItem value="UPI">UPI</MenuItem>
                     <MenuItem value="CARD">Card</MenuItem>
+                    <MenuItem value="SPLIT">Split Payment</MenuItem>
                     <MenuItem value="INSURANCE">Insurance</MenuItem>
                   </TextField>
                 </TableCell>
+                </TableRow>
+
+                {paymentMode === "SPLIT" && (
+                  <TableRow sx={{ backgroundColor: "#f8fafc" }}>
+                    <TableCell colSpan={4}>
+                      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Cash Amount"
+                          value={splitPayment.cashAmount}
+                          onChange={(e) =>
+                            setSplitPayment({ ...splitPayment, cashAmount: e.target.value })
+                          }
+                          inputProps={{ min: 0 }}
+                          sx={{ flex: 1, minWidth: 150 }}
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="UPI Amount"
+                          value={splitPayment.upiAmount}
+                          onChange={(e) =>
+                            setSplitPayment({ ...splitPayment, upiAmount: e.target.value })
+                          }
+                          inputProps={{ min: 0 }}
+                          sx={{ flex: 1, minWidth: 150 }}
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Card Amount"
+                          value={splitPayment.cardAmount}
+                          onChange={(e) =>
+                            setSplitPayment({ ...splitPayment, cardAmount: e.target.value })
+                          }
+                          inputProps={{ min: 0 }}
+                          sx={{ flex: 1, minWidth: 150 }}
+                        />
+                      </Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: "block",
+                          mt: 1,
+                          color:
+                            Math.abs(splitPaymentTotal - grandTotalAmount) <= 0.01
+                              ? "success.main"
+                              : "error.main",
+                        }}
+                      >
+                        Split total: ₹{splitPaymentTotal.toFixed(2)} / ₹
+                        {grandTotalAmount.toFixed(2)}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
 
                 <TableRow sx={{ backgroundColor: "#e0f2fe" }}>
                   <TableCell colSpan={3} sx={{ fontWeight: "bold" }}>

@@ -36,6 +36,7 @@ import PurchaseRegister from "./pages/PurchaseRegister"
 import CurrentStockRegister from "./pages/CurrentStockRegister"
 import PurchaseReturn from "./pages/PurchaseReturn"
 import DischargeSummary from "./pages/DischargeSummary";
+import HRModule from "./pages/HRModule";
 
 // ============================================
 // COMPONENTS 
@@ -111,8 +112,23 @@ export default function App() {
           <Route path="/CurrentStockRegister" element={<CurrentStockRegister />} />
           <Route path="/PurchaseReturn" element={<PurchaseReturn />} />
           <Route path="/discharge-summary" element={<DischargeSummary />} />
+          <Route path="/hr" element={<HRModule />} />
+          <Route path="/hr/employees" element={<HRModule />} />
+          <Route path="/hr/departments" element={<HRModule />} />
+          <Route path="/hr/designations" element={<HRModule />} />
+          <Route path="/hr/roles" element={<HRModule />} />
+          <Route path="/hr/attendance" element={<HRModule />} />
+          <Route path="/hr/shifts" element={<HRModule />} />
+          <Route path="/hr/leave" element={<HRModule />} />
+          <Route path="/hr/holidays" element={<HRModule />} />
+          <Route path="/hr/payroll" element={<HRModule />} />
+          <Route path="/hr/documents" element={<HRModule />} />
+          <Route path="/hr/reports" element={<HRModule />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
 }
+
+
+

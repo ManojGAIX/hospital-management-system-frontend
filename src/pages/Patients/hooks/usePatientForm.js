@@ -105,37 +105,42 @@ export default function usePatientForm({
       pincode: editingPatient.pincode || "",
 
       occupation: editingPatient.occupation || "",
-
+      nationality: editingPatient.nationality || "Indian",
+      allergies: editingPatient.allergies || "",
+      chronicDiseases: editingPatient.chronicDiseases || "",
       remarks: editingPatient.remarks || "",
     });
   }, [editingPatient]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options = {}) => {
     const validationErrors = validatePatient(formData);
-console.log("formData" , formData);
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      return;
+      return null;
     }
 
     try {
       setLoading(true);
-console.log("formData123" , formData);
-      if (editingPatient?.id) {
-        await updatePatient(editingPatient.id, formData);
-      } else {
-        await createPatient(formData);
-      }
+
+      const response = editingPatient?.id
+        ? await updatePatient(editingPatient.id, formData)
+        : await createPatient(formData);
 
       refreshPatients();
 
       resetForm();
 
-      switchToDirectory();
+      if (!options.skipDirectory) {
+        switchToDirectory();
+      }
+
+      return response.data;
     } catch (error) {
       console.error(error);
       const errorMsg = error.response?.data?.message || error.message || "Failed to save patient";
       alert("Error: " + errorMsg);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -156,3 +161,4 @@ console.log("formData123" , formData);
     resetForm,
   };
 }
+

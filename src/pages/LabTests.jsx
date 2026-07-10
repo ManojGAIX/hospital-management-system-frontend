@@ -65,6 +65,7 @@ export default function LabTests() {
   const [selectedVisitId, setSelectedVisitId] = useState("");
   const [visitNumber, setVisitNumber] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
+  const [splitPayment, setSplitPayment] = useState({ cashAmount: "", upiAmount: "", cardAmount: "" });
 
   const upiId = import.meta.env.VITE_UPI_ID || "8553839908@upi";
   const upiName = import.meta.env.VITE_UPI_NAME || "Madhav Hospital";
@@ -152,6 +153,14 @@ export default function LabTests() {
       return;
     }
 
+    const splitPaymentTotal = Object.values(splitPayment).reduce(
+      (sum, value) => sum + Number(value || 0),
+      0,
+    );
+    if (paymentMode === "SPLIT" && Math.abs(splitPaymentTotal - Number(amount || 0)) > 0.01) {
+      alert("Split payment total must equal the lab test amount.");
+      return;
+    }
     const payload = {
       patientId: Number(patientId),
       visitId: selectedVisitId ? Number(selectedVisitId) : null,
@@ -162,6 +171,9 @@ export default function LabTests() {
       result: result ? result.toUpperCase() : "PENDING",
       testDate: testDate,
       paymentMode: paymentMode,
+      cashAmount: paymentMode === "SPLIT" ? Number(splitPayment.cashAmount || 0) : 0,
+      upiAmount: paymentMode === "SPLIT" ? Number(splitPayment.upiAmount || 0) : 0,
+      cardAmount: paymentMode === "SPLIT" ? Number(splitPayment.cardAmount || 0) : 0,
       billed: paymentMode !== "PAY_LATER",
     };
 
@@ -187,6 +199,7 @@ export default function LabTests() {
     setVisitNumber("");
     setVisits([]);
     setPaymentMode("CASH");
+    setSplitPayment({ cashAmount: "", upiAmount: "", cardAmount: "" });
   };
 
   const handleDelete = async (id) => {
@@ -472,9 +485,17 @@ export default function LabTests() {
               <MenuItem value="CASH">Cash</MenuItem>
               <MenuItem value="UPI">UPI</MenuItem>
               <MenuItem value="CARD">Card</MenuItem>
+              <MenuItem value="SPLIT">Split Payment</MenuItem>
               <MenuItem value="PAY_LATER">Charge to Visit Bill</MenuItem>
             </Select>
           </FormControl>
+          {paymentMode === "SPLIT" && (
+            <Box sx={{ display: "flex", gap: 1, flex: 2, flexWrap: "wrap" }}>
+              <TextField size="small" type="number" label="Cash" value={splitPayment.cashAmount} onChange={(e) => setSplitPayment({ ...splitPayment, cashAmount: e.target.value })} inputProps={{ min: 0 }} sx={{ flex: 1, minWidth: 110 }} />
+              <TextField size="small" type="number" label="UPI" value={splitPayment.upiAmount} onChange={(e) => setSplitPayment({ ...splitPayment, upiAmount: e.target.value })} inputProps={{ min: 0 }} sx={{ flex: 1, minWidth: 110 }} />
+              <TextField size="small" type="number" label="Card" value={splitPayment.cardAmount} onChange={(e) => setSplitPayment({ ...splitPayment, cardAmount: e.target.value })} inputProps={{ min: 0 }} sx={{ flex: 1, minWidth: 110 }} />
+            </Box>
+          )}
         </Box>
 
         {/* Dynamic Payment Details Panel */}

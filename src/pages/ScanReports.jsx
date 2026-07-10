@@ -27,6 +27,7 @@ import PrintIcon from "@mui/icons-material/Print";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import api from "../services/api";
+import { uploadReport } from "../api/scanReportApi";
 
 // Dummy placeholder helper functions to prevent compilation breakage
 // Replace these with your actual import locations if they exist
@@ -110,6 +111,19 @@ export default function ScanReportScreen() {
       return;
     }
 
+    const isSupportedFile =
+      selectedFile.type === "application/pdf" ||
+      selectedFile.type.startsWith("image/");
+    if (!isSupportedFile) {
+      alert("Please upload a PDF or image file.");
+      return;
+    }
+
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      alert("Please upload a file smaller than 10 MB.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("patientId", patientId);
     formData.append("patientName", patientName);
@@ -120,9 +134,9 @@ export default function ScanReportScreen() {
 
     setIsUploading(true);
     try {
-      await api.get("/api/scanreports", formData, {
+      await uploadReport(formData, {
         onUploadProgress: (p) =>
-          setUploadProgress(Math.round((p.loaded * 100) / p.total)),
+          setUploadProgress(p.total ? Math.round((p.loaded * 100) / p.total) : 0),
       });
       alert("Upload Successful!");
       resetForm();
@@ -246,12 +260,33 @@ export default function ScanReportScreen() {
     }
   };
 
-  const handleViewInline = (fileReference) => {
+  const handleViewInline = async (fileReference) => {
     if (!fileReference) return alert("No file found");
-    const sanitized = fileReference.replace(/\\/g, "/").split("/").pop();
-    window.open(`/api/scanreports/download/${sanitized}`, "_blank");
-  };
 
+    const sanitized = fileReference.replace(/\\/g, "/").split("/").pop();
+    try {
+      const response = await api.get(
+        `/api/scanreports/download/${encodeURIComponent(sanitized)}`,
+        { responseType: "blob" },
+      );
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"] || response.data.type,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const viewer = window.open(url, "_blank", "noopener,noreferrer");
+
+      if (!viewer) {
+        window.URL.revokeObjectURL(url);
+        alert("Pop-up blocked. Please allow pop-ups to view the report.");
+        return;
+      }
+
+      setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      console.error("Scan report view failed:", error);
+      alert("Unable to open the report. Please try downloading it instead.");
+    }
+  };
   const getStatusStyle = (val) => {
     switch (val) {
       case "NORMAL":
@@ -362,7 +397,7 @@ export default function ScanReportScreen() {
               type="file"
               ref={fileInputRef}
               hidden
-              onChange={(e) => setSelectedFile(e.target.files[0])}
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
               accept="application/pdf,image/*"
             />
             <Button

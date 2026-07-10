@@ -38,7 +38,6 @@ export default function Login() {
         username,
         password,
       });
-
       // Store Auth Data
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("auth", JSON.stringify(res.data));
@@ -48,6 +47,8 @@ export default function Login() {
       );
       localStorage.setItem("role", res.data.role);
       localStorage.setItem("username", res.data.username);
+      localStorage.setItem("permissions", JSON.stringify(res.data.privileges));
+
       navigate("/dashboard");
     } catch (err) {
       console.error(err);
@@ -69,7 +70,8 @@ export default function Login() {
         minHeight: "100vh",
         width: "100vw",
         backgroundImage: "url('/background.png')",
-        backgroundSize: "cover" /* Keeps aspect ratio intact and prevents blurriness/stretching on large monitors */,
+        backgroundSize:
+          "cover" /* Keeps aspect ratio intact and prevents blurriness/stretching on large monitors */,
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         display: "flex",
@@ -82,7 +84,8 @@ export default function Login() {
           content: '""',
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(rgba(15, 23, 42, 0.15), rgba(15, 23, 42, 0.25))",
+          background:
+            "linear-gradient(rgba(15, 23, 42, 0.15), rgba(15, 23, 42, 0.25))",
         },
       }}
     >
@@ -169,12 +172,13 @@ export default function Login() {
                 backgroundColor: "#fff",
               },
             }}
-            InputProps={{
+            slotProps={{ input: {
               startAdornment: (
                 <InputAdornment position="start">
                   <AccountCircle sx={{ color: "#64748B" }} />
                 </InputAdornment>
               ),
+            },
             }}
           />
 
@@ -207,7 +211,7 @@ export default function Login() {
                 backgroundColor: "#fff",
               },
             }}
-            InputProps={{
+            slotProps={{ input: {
               startAdornment: (
                 <InputAdornment position="start">
                   <LockIcon sx={{ color: "#64748B" }} />
@@ -220,6 +224,7 @@ export default function Login() {
                   </IconButton>
                 </InputAdornment>
               ),
+            },
             }}
           />
 
