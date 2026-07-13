@@ -479,7 +479,7 @@ export default function PharmacyBilling() {
 
           unitPrice,
 
-          gstPercent: 5,
+          gstPercent: medicineMaster?.gstPercent !== undefined && medicineMaster?.gstPercent !== null ? medicineMaster.gstPercent : 0,
 
           subtotal: unitPrice * finalQty,
         };
@@ -587,7 +587,7 @@ export default function PharmacyBilling() {
 
         unitPrice: medicine.price || 0,
 
-        gstPercent: 5,
+        gstPercent: medicine.gstPercent !== undefined && medicine.gstPercent !== null ? medicine.gstPercent : 0,
 
         subtotal,
       };
@@ -1102,9 +1102,18 @@ export default function PharmacyBilling() {
     // TOTALS
     // ========================================
 
-    const finalY = doc.lastAutoTable.finalY + 12;
+    let finalY = doc.lastAutoTable.finalY + 12;
 
     const rightX = 195;
+
+    let offset = 24;
+    const isSplit = (bill?.paymentMode || paymentMode) === "SPLIT";
+    const neededSpace = isSplit ? 44 + 30 : 34 + 30; // 74 or 64 mm
+
+    if (finalY + neededSpace > 280) {
+      doc.addPage();
+      finalY = 20;
+    }
 
     doc.setFontSize(11);
 
@@ -1127,8 +1136,7 @@ export default function PharmacyBilling() {
       },
     );
 
-    let offset = 24;
-    if ((bill?.paymentMode || paymentMode) === "SPLIT") {
+    if (isSplit) {
       const c =
         bill?.cashAmount !== undefined
           ? bill.cashAmount
@@ -1180,6 +1188,20 @@ export default function PharmacyBilling() {
         align: "right",
       },
     );
+
+    // ========================================
+    // SIGNATURE
+    // ========================================
+
+    const signY = finalY + offset + 20;
+
+    doc.setDrawColor(180);
+    doc.line(140, signY, 190, signY);
+
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.setFont(undefined, "bold");
+    doc.text("Authorized Signature", 148, signY + 8);
 
     // ========================================
     // SAVE PDF
@@ -2516,7 +2538,7 @@ export default function PharmacyBilling() {
                 Subtotal : ₹{subtotal.toFixed(2)}
               </Typography>
               <Typography variant="body2">
-                GST (5%) : ₹{gstAmount.toFixed(2)}
+                GST Amount : ₹{gstAmount.toFixed(2)}
               </Typography>
               {discount > 0 && (
                 <Typography variant="body2">

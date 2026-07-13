@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import api from "../services/api";
+import { createMedicine, updateMedicine } from "../api/medicineApi";
 
 import {
   Box,
@@ -17,16 +18,41 @@ import {
   TableRow,
   IconButton,
   Autocomplete,
+  Alert,
+  Chip,
+  Stack,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const API = "/api";
 
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 export default function PharmacyPurchase() {
   const [suppliers, setSuppliers] = useState([]);
   const [medicines, setMedicines] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const tableRef = useRef(null);
+
+  const scrollLeft = () => {
+    tableRef.current?.scrollBy({
+      left: -350,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollRight = () => {
+    tableRef.current?.scrollBy({
+      left: 350,
+      behavior: "smooth",
+    });
+  };
 
   const [formData, setFormData] = useState({
     grnNumber: "",
@@ -131,6 +157,26 @@ export default function PharmacyPurchase() {
     setItems(updated);
   };
 
+  const selectMedicine = (index, medicine) => {
+    if (!medicine) return;
+    setItems((current) =>
+      current.map((item, rowIndex) =>
+        rowIndex === index
+          ? {
+              ...item,
+              medicineId: medicine.id,
+              medicineName: medicine.medicineName || "",
+              batchNo: medicine.batchNo || "",
+              expiryDate: medicine.expiryDate || "",
+              hsnCode: medicine.hsnCode || "",
+              gstPercent: Number(medicine.gstPercent || 0),
+              mrp: Number(medicine.mrp ?? medicine.price ?? 0),
+              purchaseRate: Number(medicine.purchasePrice || 0),
+            }
+          : item,
+      ),
+    );
+  };
   const addRow = () => {
     setItems([
       ...items,
@@ -188,9 +234,98 @@ export default function PharmacyPurchase() {
   }, 0);
 
   const netAmount = subtotal + gstAmount - discountAmount;
+  const receivedQuantity = (item) =>
+    Number(item.quantity || 0) + Number(item.freeQuantity || 0);
+  const makeItemCode = (name, batch) =>
+    `ITM-${`${name || "MED"}${batch || Date.now()}`
+      .replace(/[^A-Z0-9]/gi, "")
+      .slice(0, 12)
+      .toUpperCase()}-${Date.now().toString().slice(-5)}`;
 
+  // The medicine master is read by Medicines, billing and stock-register pages.
+  // Each GRN updates only its matching medicine + batch; a new batch gets its own stock record.
+  const syncInventoryFromGRN = async (grnItems) => {
+    const inventory = [...medicines];
+    for (const item of grnItems) {
+      const batch = item.batchNo.trim().toUpperCase();
+      const received = receivedQuantity(item);
+      const selected = inventory.find(
+        (medicine) => String(medicine.id) === String(item.medicineId),
+      );
+      const sameBatch = inventory.find(
+        (medicine) =>
+          medicine.medicineName?.trim().toUpperCase() ===
+            item.medicineName.trim().toUpperCase() &&
+          medicine.batchNo?.trim().toUpperCase() === batch,
+      );
+      const target =
+        sameBatch ||
+        (selected?.batchNo?.trim().toUpperCase() === batch ? selected : null);
+      if (target) {
+        const updated = {
+          ...target,
+          stockQuantity: Number(target.stockQuantity || 0) + received,
+          batchNo: batch,
+          expiryDate: item.expiryDate || target.expiryDate || null,
+          purchasePrice: Number(item.purchaseRate || target.purchasePrice || 0),
+          mrp: Number(item.mrp || target.mrp || target.price || 0),
+          price: Number(item.mrp || target.price || 0),
+          gstPercent: Number(item.gstPercent || 0),
+          hsnCode: item.hsnCode || target.hsnCode || "",
+          supplier: formData.supplierName || target.supplier || "",
+        };
+        await updateMedicine(target.id, updated);
+        Object.assign(target, updated);
+      } else if (selected) {
+        const { id, ...source } = selected;
+        const record = {
+          ...source,
+          itemCode: makeItemCode(item.medicineName, batch),
+          barcode: "",
+          medicineName: item.medicineName.trim().toUpperCase(),
+          batchNo: batch,
+          stockQuantity: received,
+          expiryDate: item.expiryDate || null,
+          purchasePrice: Number(item.purchaseRate || 0),
+          mrp: Number(item.mrp || 0),
+          price: Number(item.mrp || 0),
+          gstPercent: Number(item.gstPercent || 0),
+          hsnCode: item.hsnCode || "",
+          supplier: formData.supplierName || source.supplier || "",
+        };
+        const response = await createMedicine(record);
+        inventory.push(response.data || record);
+      }
+    }
+  };
   const saveGRN = async () => {
+    const validItems = items.filter(
+      (item) =>
+        item.medicineId &&
+        item.medicineName &&
+        item.batchNo &&
+        item.expiryDate &&
+        receivedQuantity(item) > 0 &&
+        Number(item.purchaseRate) >= 0,
+    );
+    if (!formData.supplierId || !formData.billNumber || !formData.billDate) {
+      setMessage({
+        severity: "warning",
+        text: "Enter supplier, supplier bill number and bill date before saving the GRN.",
+      });
+      return;
+    }
+    if (validItems.length !== items.length) {
+      setMessage({
+        severity: "warning",
+        text: "Every GRN row needs a medicine, batch, expiry date and received quantity.",
+      });
+      return;
+    }
+
     try {
+      setSaving(true);
+      setMessage(null);
       const payload = {
         supplierId: formData.supplierId,
         supplierName: formData.supplierName,
@@ -208,22 +343,110 @@ export default function PharmacyPurchase() {
         discountAmount: totalDiscount,
         totalAmount: grandTotal,
 
-        items,
+        items: validItems,
       };
 
       console.log("GRN Payload", payload);
 
-      await api.get("/api/pharmacy-purchase", payload);
+      await api.post("/api/pharmacy-purchase", payload);
 
-      alert("GRN Saved Successfully");
+      await syncInventoryFromGRN(validItems);
+      setMessage({
+        severity: "success",
+        text: "GRN saved and medicine inventory has been updated.",
+      });
+
+      // Reset form
+      setFormData({
+        grnNumber: "GRN-" + new Date().getTime(),
+        storeName: "Main Pharmacy",
+        supplierId: "",
+        supplierName: "",
+        billNumber: "",
+        billDate: "",
+        poNumber: "",
+        challanNumber: "",
+        paymentMode: "CASH",
+      });
+      setItems([
+        {
+          medicineId: "",
+          medicineName: "",
+          batchNo: "",
+          expiryDate: "",
+          quantity: 1,
+          freeQuantity: 0,
+          purchaseRate: 0,
+          mrp: 0,
+          gstPercent: 0,
+          discountPercent: 0,
+          hsnCode: "",
+          amount: 0,
+        },
+      ]);
+      await loadMedicines();
     } catch (err) {
       console.error(err);
-      alert("Failed To Save GRN");
+      await loadMedicines();
+      setMessage({
+        severity: "error",
+        text: "The GRN could not be fully saved and synchronized. Check the purchase register before retrying.",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
     <Box sx={{ p: 1 }}>
+      <Paper
+        sx={{
+          p: { xs: 2, md: 3 },
+          mb: 3,
+          borderRadius: 4,
+          color: "#fff",
+          background: "linear-gradient(125deg, #0f2f6f, #2563eb 58%, #0891b2)",
+          boxShadow: "0 16px 36px rgba(30,64,175,.22)",
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems={{ sm: "center" }}
+          justifyContent="space-between"
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Inventory2OutlinedIcon sx={{ fontSize: 34 }} />
+            <Box>
+              <Typography variant="h5" fontWeight={800}>
+                Goods Receipt Note
+              </Typography>
+              <Typography sx={{ opacity: 0.82 }}>
+                Receive stock once; medicine inventory stays in sync.
+              </Typography>
+            </Box>
+          </Stack>
+          <Chip
+            icon={<LocalShippingOutlinedIcon />}
+            label={`${items.length} line${items.length === 1 ? "" : "s"}`}
+            sx={{
+              bgcolor: "rgba(255,255,255,.16)",
+              color: "#fff",
+              fontWeight: 700,
+            }}
+          />
+        </Stack>
+      </Paper>
+      {message && (
+        <Alert
+          severity={message.severity}
+          sx={{ mb: 2, borderRadius: 2 }}
+          onClose={() => setMessage(null)}
+        >
+          {message.text}
+        </Alert>
+      )}
+
       <Paper
         sx={{
           p: 3,
@@ -280,15 +503,19 @@ export default function PharmacyPurchase() {
           <Grid item xs={12} md={4}>
             <TextField
               select
-              sx={{ minWidth: 180 }}
+              fullWidth
               label="Supplier"
               value={formData.supplierId}
-              onChange={(e) =>
+              onChange={(e) => {
+                const selectedSup = suppliers.find(
+                  (s) => String(s.id) === String(e.target.value),
+                );
                 setFormData({
                   ...formData,
                   supplierId: e.target.value,
-                })
-              }
+                  supplierName: selectedSup ? selectedSup.supplierName : "",
+                });
+              }}
             >
               {suppliers.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
@@ -319,195 +546,243 @@ export default function PharmacyPurchase() {
           </Typography>
         </Box>
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>SI No</TableCell>
-                <TableCell>Medicine</TableCell>
-                <TableCell>Batch</TableCell>
-                <TableCell>Expiry</TableCell>
-                <TableCell>Qty</TableCell>
-                <TableCell>Free</TableCell>
-                <TableCell>Rate</TableCell>
-                <TableCell>MRP</TableCell>
-                <TableCell>GST %</TableCell>
-                <TableCell>Disc %</TableCell>
-                <TableCell>HSN</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Action</TableCell>
-              </TableRow>
-            </TableHead>
+        <Box sx={{ position: "relative" }}>
+          <IconButton
+            onClick={scrollLeft}
+            sx={{
+              position: "absolute",
+              left: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 10,
+              bgcolor: "rgba(255,255,255,0.9)",
+              boxShadow: 3,
+              "&:hover": {
+                bgcolor: "#1976d2",
+                color: "#fff",
+              },
+            }}
+          >
+            <ChevronLeftIcon />
+          </IconButton>
 
-            <TableBody>
-              {items.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-
-                  <TableCell sx={{ minWidth: 220 }}>
-                    <Autocomplete
-                      options={medicines}
-                      getOptionLabel={(option) => option.medicineName || ""}
-                      onChange={(event, value) => {
-                        if (!value) return;
-
-                        handleItemChange(index, "medicineId", value.id);
-
-                        handleItemChange(
-                          index,
-                          "medicineName",
-                          value.medicineName,
-                        );
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          size="small"
-                          placeholder="Search Medicine"
-                        />
-                      )}
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      sx={{ minWidth: 100 }}
-                      value={item.batchNo}
-                      onChange={(e) =>
-                        handleItemChange(index, "batchNo", e.target.value)
-                      }
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      type="date"
-                      value={item.expiryDate}
-                      onChange={(e) =>
-                        handleItemChange(index, "expiryDate", e.target.value)
-                      }
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      sx={{ minWidth: 90 }}
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        handleItemChange(index, "quantity", e.target.value)
-                      }
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      sx={{ minWidth: 70 }}
-                      type="number"
-                      value={item.freeQuantity}
-                      onChange={(e) =>
-                        handleItemChange(index, "freeQuantity", e.target.value)
-                      }
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      sx={{ minWidth: 80 }}
-                      type="number"
-                      value={item.purchaseRate}
-                      onChange={(e) =>
-                        handleItemChange(index, "purchaseRate", e.target.value)
-                      }
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      sx={{ minWidth: 100 }}
-                      type="number"
-                      value={item.mrp}
-                      onChange={(e) =>
-                        handleItemChange(index, "mrp", e.target.value)
-                      }
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      sx={{ minWidth: 60 }}
-                      type="number"
-                      value={item.gstPercent}
-                      onChange={(e) =>
-                        handleItemChange(index, "gstPercent", e.target.value)
-                      }
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      sx={{ minWidth: 60 }}
-                      type="number"
-                      value={item.discountPercent}
-                      onChange={(e) =>
-                        handleItemChange(
-                          index,
-                          "discountPercent",
-                          e.target.value,
-                        )
-                      }
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      sx={{ minWidth: 70 }}
-                      value={item.hsnCode}
-                      onChange={(e) =>
-                        handleItemChange(index, "hsnCode", e.target.value)
-                      }
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <Typography fontWeight={700} color="success.main">
-                      ₹{Number(item.amount).toFixed(2)}
-                    </Typography>
-                  </TableCell>
-
-                  <TableCell align="center">
-                    <IconButton
-                      color="error"
-                      onClick={() => removeRow(index)}
-                      sx={{
-                        backgroundColor: "#fee2e2",
-                        "&:hover": {
-                          backgroundColor: "#fecaca",
-                          transform: "scale(1.1)",
-                        },
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
+          <TableContainer
+            ref={tableRef}
+            sx={{
+              overflowX: "auto",
+              scrollBehavior: "smooth",
+            }}
+          >
+            <Table sx={{ minWidth: 1350 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: "bold" }}>SI No</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 200 }}>Medicine</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 110 }}>Batch</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 110 }}>Expiry</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 80 }}>Qty</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 80 }}>Free</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 100 }}>Rate</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 100 }}>MRP</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 80 }}>GST %</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 80 }}>Disc %</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 90 }}>HSN</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 90 }}>Amount</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", minWidth: 70 }} align="center">Action</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+
+              <TableBody>
+                {items.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell sx={{ fontWeight: 500 }}>{index + 1}</TableCell>
+
+                    <TableCell sx={{ minWidth: 200 }}>
+                      <Autocomplete
+                        options={medicines}
+                        getOptionLabel={(option) => {
+                          const code = option.itemCode
+                            ? `[${option.itemCode}] `
+                            : "";
+                          return `${code}${option.medicineName || ""}`;
+                        }}
+                        value={
+                          medicines.find(
+                            (medicine) =>
+                              String(medicine.id) === String(item.medicineId),
+                          ) || null
+                        }
+                        onChange={(event, value) => selectMedicine(index, value)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            size="small"
+                            placeholder="Search Medicine"
+                          />
+                        )}
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        sx={{ minWidth: 100 }}
+                        value={item.batchNo}
+                        onChange={(e) =>
+                          handleItemChange(index, "batchNo", e.target.value)
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        type="date"
+                        sx={{ minWidth: 100 }}
+                        value={item.expiryDate}
+                        onChange={(e) =>
+                          handleItemChange(index, "expiryDate", e.target.value)
+                        }
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        sx={{ minWidth: 70 }}
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          handleItemChange(index, "quantity", e.target.value)
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        sx={{ minWidth: 70 }}
+                        type="number"
+                        value={item.freeQuantity}
+                        onChange={(e) =>
+                          handleItemChange(index, "freeQuantity", e.target.value)
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        sx={{ minWidth: 90 }}
+                        type="number"
+                        value={item.purchaseRate}
+                        onChange={(e) =>
+                          handleItemChange(index, "purchaseRate", e.target.value)
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        sx={{ minWidth: 90 }}
+                        type="number"
+                        value={item.mrp}
+                        onChange={(e) =>
+                          handleItemChange(index, "mrp", e.target.value)
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        sx={{ minWidth: 70 }}
+                        type="number"
+                        value={item.gstPercent}
+                        onChange={(e) =>
+                          handleItemChange(index, "gstPercent", e.target.value)
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        sx={{ minWidth: 70 }}
+                        type="number"
+                        value={item.discountPercent}
+                        onChange={(e) =>
+                          handleItemChange(
+                            index,
+                            "discountPercent",
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        sx={{ minWidth: 80 }}
+                        value={item.hsnCode}
+                        onChange={(e) =>
+                          handleItemChange(index, "hsnCode", e.target.value)
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <Typography fontWeight={700} color="success.main" sx={{ minWidth: 80 }}>
+                        ₹{Number(item.amount).toFixed(2)}
+                      </Typography>
+                    </TableCell>
+
+                    <TableCell align="center">
+                      <IconButton
+                        color="error"
+                        onClick={() => removeRow(index)}
+                        sx={{
+                          backgroundColor: "#fee2e2",
+                          "&:hover": {
+                            backgroundColor: "#fecaca",
+                            transform: "scale(1.1)",
+                          },
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <IconButton
+            onClick={scrollRight}
+            sx={{
+              position: "absolute",
+              right: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 10,
+              bgcolor: "rgba(255,255,255,0.9)",
+              boxShadow: 3,
+              "&:hover": {
+                bgcolor: "#1976d2",
+                color: "#fff",
+              },
+            }}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
 
         <Box
           sx={{
@@ -631,6 +906,7 @@ export default function PharmacyPurchase() {
           <Button
             variant="contained"
             onClick={saveGRN}
+            disabled={saving}
             sx={{
               px: 5,
               borderRadius: 3,
@@ -639,7 +915,7 @@ export default function PharmacyPurchase() {
               background: "linear-gradient(135deg,#1E40AF,#06B6D4)",
             }}
           >
-            Save GRN
+            {saving ? "Saving & syncing..." : "Save GRN & Update Stock"}
           </Button>
         </Box>
       </Paper>

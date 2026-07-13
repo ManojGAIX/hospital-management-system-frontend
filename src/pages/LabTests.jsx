@@ -29,6 +29,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 import DeleteIcon from "@mui/icons-material/Delete";
+import PrintIcon from "@mui/icons-material/Print";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
@@ -40,6 +41,8 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import { getPatients } from "../api/patientApi";
 import { getLabTests, createLabTest, deleteLabTest } from "../api/labTestApi";
 import { formatDateTime } from "../utils/dateFormatter";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function LabTests() {
   const [patients, setPatients] = useState([]);
@@ -65,7 +68,11 @@ export default function LabTests() {
   const [selectedVisitId, setSelectedVisitId] = useState("");
   const [visitNumber, setVisitNumber] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
-  const [splitPayment, setSplitPayment] = useState({ cashAmount: "", upiAmount: "", cardAmount: "" });
+  const [splitPayment, setSplitPayment] = useState({
+    cashAmount: "",
+    upiAmount: "",
+    cardAmount: "",
+  });
 
   const upiId = import.meta.env.VITE_UPI_ID || "8553839908@upi";
   const upiName = import.meta.env.VITE_UPI_NAME || "Madhav Hospital";
@@ -157,7 +164,10 @@ export default function LabTests() {
       (sum, value) => sum + Number(value || 0),
       0,
     );
-    if (paymentMode === "SPLIT" && Math.abs(splitPaymentTotal - Number(amount || 0)) > 0.01) {
+    if (
+      paymentMode === "SPLIT" &&
+      Math.abs(splitPaymentTotal - Number(amount || 0)) > 0.01
+    ) {
       alert("Split payment total must equal the lab test amount.");
       return;
     }
@@ -171,9 +181,12 @@ export default function LabTests() {
       result: result ? result.toUpperCase() : "PENDING",
       testDate: testDate,
       paymentMode: paymentMode,
-      cashAmount: paymentMode === "SPLIT" ? Number(splitPayment.cashAmount || 0) : 0,
-      upiAmount: paymentMode === "SPLIT" ? Number(splitPayment.upiAmount || 0) : 0,
-      cardAmount: paymentMode === "SPLIT" ? Number(splitPayment.cardAmount || 0) : 0,
+      cashAmount:
+        paymentMode === "SPLIT" ? Number(splitPayment.cashAmount || 0) : 0,
+      upiAmount:
+        paymentMode === "SPLIT" ? Number(splitPayment.upiAmount || 0) : 0,
+      cardAmount:
+        paymentMode === "SPLIT" ? Number(splitPayment.cardAmount || 0) : 0,
       billed: paymentMode !== "PAY_LATER",
     };
 
@@ -211,6 +224,215 @@ export default function LabTests() {
         console.error(err);
       }
     }
+  };
+
+  const handlePrintLabTest = (test) => {
+    const doc = new jsPDF();
+
+    const img = new Image();
+    img.src = "/logo.png";
+
+    img.onload = () => {
+      // =====================================
+      // HEADER
+      // =====================================
+
+      doc.addImage(img, "PNG", 12, 8, 185, 42);
+
+      doc.setDrawColor(30, 58, 138);
+      doc.line(10, 54, 200, 54);
+
+      doc.setFontSize(18);
+      doc.setTextColor(30, 58, 138);
+      doc.setFont(undefined, "bold");
+
+      doc.text("LAB TEST RECEIPT", 105, 66, {
+        align: "center",
+      });
+
+      let y = 82;
+
+      // =====================================
+      // PATIENT DETAILS
+      // =====================================
+
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+
+      doc.setFont(undefined, "bold");
+      doc.text("Patient Name", 15, y);
+      doc.text(":", 55, y);
+
+      doc.setFont(undefined, "normal");
+      doc.text(test.patientName || "-", 60, y);
+
+      doc.setFont(undefined, "bold");
+      doc.text("Test Name", 125, y);
+      doc.text(":", 155, y);
+
+      doc.setFont(undefined, "normal");
+      doc.text(test.testName || "-", 160, y);
+
+      y += 10;
+
+      doc.setFont(undefined, "bold");
+      doc.text("PRN", 15, y);
+      doc.text(":", 55, y);
+
+      doc.setFont(undefined, "normal");
+      doc.text(`PRN${String(test.patientId).padStart(4, "0")}`, 60, y);
+
+      doc.setFont(undefined, "bold");
+      doc.text("Result", 125, y);
+      doc.text(":", 155, y);
+
+      doc.setFont(undefined, "normal");
+      doc.text(test.result || "PENDING", 160, y);
+
+      y += 10;
+
+      doc.setFont(undefined, "bold");
+      doc.text("Visit No", 15, y);
+      doc.text(":", 55, y);
+
+      doc.setFont(undefined, "normal");
+      doc.text(test.visitNumber || "-", 60, y);
+
+      doc.setFont(undefined, "bold");
+      doc.text("Date", 125, y);
+      doc.text(":", 155, y);
+
+      doc.setFont(undefined, "normal");
+      doc.text(formatDateTime(test.testDate), 160, y);
+
+      y += 10;
+
+      doc.setFont(undefined, "bold");
+      doc.text("Payment Mode", 15, y);
+      doc.text(":", 55, y);
+
+      doc.setFont(undefined, "normal");
+      doc.text(
+        test.paymentMode === "PAY_LATER"
+          ? "PAY LATER"
+          : test.paymentMode || "CASH",
+        60,
+        y,
+      );
+
+      // =====================================
+      // CHARGES TABLE
+      // =====================================
+
+      autoTable(doc, {
+        startY: y + 15,
+
+        head: [["#", "DESCRIPTION", "AMOUNT (₹)"]],
+
+        body: [
+          [1, test.testName || "Lab Test", Number(test.amount || 0).toFixed(2)],
+        ],
+
+        foot: [["", "TOTAL", Number(test.amount || 0).toFixed(2)]],
+
+        theme: "grid",
+
+        headStyles: {
+          fillColor: [30, 58, 138],
+        },
+
+        footStyles: {
+          fillColor: [220, 220, 220],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+        },
+      });
+
+      // =====================================
+      // FOOTER
+      // =====================================
+
+      const finalY = doc.lastAutoTable.finalY + 30;
+
+      doc.line(130, finalY, 190, finalY);
+
+      doc.setFont(undefined, "bold");
+      doc.text("Authorized Signature", 140, finalY + 10);
+
+      doc.save(`LabTest_${test.patientName || "Patient"}_${test.id}.pdf`);
+    };
+
+    img.onerror = () => {
+      // Fallback if logo fails to load
+      doc.setFontSize(18);
+      doc.setTextColor(30, 58, 138);
+      doc.setFont(undefined, "bold");
+      doc.text("MADHAV HOSPITAL", 105, 20, { align: "center" });
+
+      doc.setDrawColor(30, 58, 138);
+      doc.line(10, 25, 200, 25);
+
+      doc.setFontSize(16);
+      doc.text("LAB TEST RECEIPT", 105, 38, { align: "center" });
+
+      let y = 55;
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+
+      const fallbackDraw = (label, value, xLabel, xColon, xValue) => {
+        doc.setFont(undefined, "bold");
+        doc.text(label, xLabel, y);
+        doc.text(":", xColon, y);
+        doc.setFont(undefined, "normal");
+        doc.text(String(value), xValue, y);
+        y += 10;
+      };
+
+      fallbackDraw("Patient Name", test.patientName || "-", 15, 55, 60);
+      fallbackDraw(
+        "PRN",
+        `PRN${String(test.patientId).padStart(4, "0")}`,
+        15,
+        55,
+        60,
+      );
+      fallbackDraw("Visit No", test.visitNumber || "-", 15, 55, 60);
+      fallbackDraw("Test Name", test.testName || "-", 15, 55, 60);
+      fallbackDraw("Result", test.result || "PENDING", 15, 55, 60);
+      fallbackDraw("Date", formatDateTime(test.testDate), 15, 55, 60);
+      fallbackDraw(
+        "Payment Mode",
+        test.paymentMode === "PAY_LATER"
+          ? "PAY LATER"
+          : test.paymentMode || "CASH",
+        15,
+        55,
+        60,
+      );
+
+      autoTable(doc, {
+        startY: y + 10,
+        head: [["#", "DESCRIPTION", "AMOUNT (₹)"]],
+        body: [
+          [1, test.testName || "Lab Test", Number(test.amount || 0).toFixed(2)],
+        ],
+        foot: [["", "TOTAL", Number(test.amount || 0).toFixed(2)]],
+        theme: "grid",
+        headStyles: { fillColor: [30, 58, 138] },
+        footStyles: {
+          fillColor: [220, 220, 220],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+        },
+      });
+
+      const finalY = doc.lastAutoTable.finalY + 30;
+      doc.line(130, finalY, 190, finalY);
+      doc.setFont(undefined, "bold");
+      doc.text("Authorized Signature", 140, finalY + 10);
+
+      doc.save(`LabTest_${test.patientName || "Patient"}_${test.id}.pdf`);
+    };
   };
 
   const filteredTests = tests.filter((t) => {
@@ -491,9 +713,48 @@ export default function LabTests() {
           </FormControl>
           {paymentMode === "SPLIT" && (
             <Box sx={{ display: "flex", gap: 1, flex: 2, flexWrap: "wrap" }}>
-              <TextField size="small" type="number" label="Cash" value={splitPayment.cashAmount} onChange={(e) => setSplitPayment({ ...splitPayment, cashAmount: e.target.value })} inputProps={{ min: 0 }} sx={{ flex: 1, minWidth: 110 }} />
-              <TextField size="small" type="number" label="UPI" value={splitPayment.upiAmount} onChange={(e) => setSplitPayment({ ...splitPayment, upiAmount: e.target.value })} inputProps={{ min: 0 }} sx={{ flex: 1, minWidth: 110 }} />
-              <TextField size="small" type="number" label="Card" value={splitPayment.cardAmount} onChange={(e) => setSplitPayment({ ...splitPayment, cardAmount: e.target.value })} inputProps={{ min: 0 }} sx={{ flex: 1, minWidth: 110 }} />
+              <TextField
+                size="small"
+                type="number"
+                label="Cash"
+                value={splitPayment.cashAmount}
+                onChange={(e) =>
+                  setSplitPayment({
+                    ...splitPayment,
+                    cashAmount: e.target.value,
+                  })
+                }
+                inputProps={{ min: 0 }}
+                sx={{ flex: 1, minWidth: 110 }}
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="UPI"
+                value={splitPayment.upiAmount}
+                onChange={(e) =>
+                  setSplitPayment({
+                    ...splitPayment,
+                    upiAmount: e.target.value,
+                  })
+                }
+                inputProps={{ min: 0 }}
+                sx={{ flex: 1, minWidth: 110 }}
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="Card"
+                value={splitPayment.cardAmount}
+                onChange={(e) =>
+                  setSplitPayment({
+                    ...splitPayment,
+                    cardAmount: e.target.value,
+                  })
+                }
+                inputProps={{ min: 0 }}
+                sx={{ flex: 1, minWidth: 110 }}
+              />
             </Box>
           )}
         </Box>
@@ -993,7 +1254,15 @@ export default function LabTests() {
                     </Box>
                   </TableCell>
                   <TableCell>{formatDateTime(report.testDate)}</TableCell>
-                  <TableCell sx={{ textAlign: "center" }}>
+                  <TableCell sx={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                    <IconButton
+                      color="primary"
+                      size="small"
+                      onClick={() => handlePrintLabTest(report)}
+                      title="Print Receipt"
+                    >
+                      <PrintIcon fontSize="small" />
+                    </IconButton>
                     <IconButton
                       color="error"
                       size="small"

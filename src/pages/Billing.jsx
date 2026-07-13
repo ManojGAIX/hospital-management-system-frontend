@@ -785,7 +785,12 @@ export default function PatientBilling() {
       // GRAND TOTAL
       // ============================================
 
-      const finalY = doc.lastAutoTable.finalY + 15;
+      let finalY = doc.lastAutoTable.finalY + 15;
+
+      if (finalY + 70 > 280) {
+        doc.addPage();
+        finalY = 20;
+      }
 
       // Calculate subtotal before discount
       //   const grandTotal = subtotal - Number(discount || 0);

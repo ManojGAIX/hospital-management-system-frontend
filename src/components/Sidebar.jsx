@@ -323,7 +323,7 @@ export default function Sidebar({ open, onItemClick }) {
               variant="subtitle1"
               sx={{ fontWeight: 800, lineHeight: 1.1, letterSpacing: 0 }}
             >
-              MADHAV HOSPITAL
+              MADHAV
             </Typography>
 
             <Typography variant="caption" sx={{ color: "#bfdbfe", fontWeight: 600 }}>

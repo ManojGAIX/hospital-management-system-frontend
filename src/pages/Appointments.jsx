@@ -97,7 +97,11 @@ export default function Appointments() {
   const [visitType, setVisitType] = useState("New Patient");
   const [editId, setEditId] = useState(null);
   const [paymentMode, setPaymentMode] = useState("CASH");
-  const [splitPayment, setSplitPayment] = useState({ cashAmount: "", upiAmount: "", cardAmount: "" });
+  const [splitPayment, setSplitPayment] = useState({
+    cashAmount: "",
+    upiAmount: "",
+    cardAmount: "",
+  });
 
   const [viewMode, setViewMode] = useState("list"); // list or calendar
   const [selectedCalendarApp, setSelectedCalendarApp] = useState(null);
@@ -173,7 +177,10 @@ export default function Appointments() {
       );
 
   const total = registrationFee + consultationFee;
-  const splitPaymentTotal = Object.values(splitPayment).reduce((sum, value) => sum + Number(value || 0), 0);
+  const splitPaymentTotal = Object.values(splitPayment).reduce(
+    (sum, value) => sum + Number(value || 0),
+    0,
+  );
 
   const upiId = import.meta.env.VITE_UPI_ID || "8553839908@upi";
   const upiName = import.meta.env.VITE_UPI_NAME || "Madhav Hospital";
@@ -236,7 +243,10 @@ export default function Appointments() {
     }
 
     if (paymentMode === "SPLIT" && Math.abs(splitPaymentTotal - total) > 0.01) {
-      showNotification("Split payment total must equal the appointment fee.", "warning");
+      showNotification(
+        "Split payment total must equal the appointment fee.",
+        "warning",
+      );
       return;
     }
 
@@ -247,11 +257,13 @@ export default function Appointments() {
       patientId: Number(selectedPatientId),
       visitType,
       paymentMode,
-      cashAmount: paymentMode === "SPLIT" ? Number(splitPayment.cashAmount || 0) : 0,
-      upiAmount: paymentMode === "SPLIT" ? Number(splitPayment.upiAmount || 0) : 0,
-      cardAmount: paymentMode === "SPLIT" ? Number(splitPayment.cardAmount || 0) : 0,
+      cashAmount:
+        paymentMode === "SPLIT" ? Number(splitPayment.cashAmount || 0) : 0,
+      upiAmount:
+        paymentMode === "SPLIT" ? Number(splitPayment.upiAmount || 0) : 0,
+      cardAmount:
+        paymentMode === "SPLIT" ? Number(splitPayment.cardAmount || 0) : 0,
     };
-
 
     try {
       if (editId) {
@@ -280,7 +292,11 @@ export default function Appointments() {
     setSelectedPatientId(String(app.patientId));
     setVisitType(app.visitType || "New Patient");
     setPaymentMode(app.paymentMode || "CASH");
-    setSplitPayment({ cashAmount: app.cashAmount || "", upiAmount: app.upiAmount || "", cardAmount: app.cardAmount || "" });
+    setSplitPayment({
+      cashAmount: app.cashAmount || "",
+      upiAmount: app.upiAmount || "",
+      cardAmount: app.cardAmount || "",
+    });
 
     window.scrollTo({
       top: 0,
@@ -752,28 +768,57 @@ export default function Appointments() {
 
       {/* ================= FORM ================= */}
 
-      <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, borderRadius: 2, border: "1px solid #dbe4ee", background: "#fff", boxShadow: "0 8px 24px rgba(15,23,42,0.05)" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2, md: 3 },
+          borderRadius: 2,
+          border: "1px solid #dbe4ee",
+          background: "#fff",
+          boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+        }}
+      >
         <Grid container spacing={2} alignItems="center">
           <Grid size={{ xs: 12, md: 4 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Select Doctor</InputLabel>
-              <Select value={doctorName} label="Select Doctor" onChange={(e) => setDoctorName(e.target.value)}>
-                <MenuItem value=""><em>-- Select Doctor --</em></MenuItem>
+              <Select
+                value={doctorName}
+                label="Select Doctor"
+                onChange={(e) => setDoctorName(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>-- Select Doctor --</em>
+                </MenuItem>
                 {doctors.map((doc) => (
-                  <MenuItem key={doc.id} value={doc.name}>{doc.name} ({doc.specialization})</MenuItem>
+                  <MenuItem key={doc.id} value={doc.name}>
+                    {doc.name} ({doc.specialization})
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
 
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField fullWidth size="small" type="datetime-local" label="Appointment Date & Time" value={date} onChange={(e) => setDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField
+              fullWidth
+              size="small"
+              type="datetime-local"
+              label="Appointment Date & Time"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 2 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
-              <Select value={status} label="Status" onChange={(e) => setStatus(e.target.value)}>
+              <Select
+                value={status}
+                label="Status"
+                onChange={(e) => setStatus(e.target.value)}
+              >
                 <MenuItem value="BOOKED">BOOKED</MenuItem>
                 <MenuItem value="PENDING">PENDING</MenuItem>
                 <MenuItem value="COMPLETED">COMPLETED</MenuItem>
@@ -785,7 +830,11 @@ export default function Appointments() {
           <Grid size={{ xs: 12, sm: 6, md: 2 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Visit Type</InputLabel>
-              <Select value={visitType} label="Visit Type" onChange={(e) => setVisitType(e.target.value)}>
+              <Select
+                value={visitType}
+                label="Visit Type"
+                onChange={(e) => setVisitType(e.target.value)}
+              >
                 <MenuItem value="New Patient">New Patient</MenuItem>
                 <MenuItem value="Follow-up">Follow-up</MenuItem>
               </Select>
@@ -795,7 +844,11 @@ export default function Appointments() {
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Payment Mode</InputLabel>
-              <Select value={paymentMode} label="Payment Mode" onChange={(e) => setPaymentMode(e.target.value)}>
+              <Select
+                value={paymentMode}
+                label="Payment Mode"
+                onChange={(e) => setPaymentMode(e.target.value)}
+              >
                 <MenuItem value="CASH">Cash</MenuItem>
                 <MenuItem value="UPI">UPI</MenuItem>
                 <MenuItem value="CARD">Card</MenuItem>
@@ -808,19 +861,80 @@ export default function Appointments() {
           <Grid size={{ xs: 12, md: 9 }}>
             <Autocomplete
               options={patients}
-              getOptionLabel={(option) => `${option.patientCode || ""} - ${option.name || ""}`}
-              value={patients.find((p) => String(p.id) === String(selectedPatientId)) || null}
-              onChange={(event, newValue) => setSelectedPatientId(newValue ? String(newValue.id) : "")}
-              renderInput={(params) => <TextField {...params} size="small" label="Search Patient" placeholder="Type Patient Name / PRN" />}
+              getOptionLabel={(option) =>
+                `${option.patientCode || ""} - ${option.name || ""}`
+              }
+              value={
+                patients.find(
+                  (p) => String(p.id) === String(selectedPatientId),
+                ) || null
+              }
+              onChange={(event, newValue) =>
+                setSelectedPatientId(newValue ? String(newValue.id) : "")
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  size="small"
+                  label="Search Patient"
+                  placeholder="Type Patient Name / PRN"
+                />
+              )}
               isOptionEqualToValue={(option, value) => option.id === value.id}
             />
           </Grid>
         </Grid>
         {paymentMode === "SPLIT" && (
           <Grid container spacing={1.5} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, sm: 4 }}><TextField fullWidth size="small" type="number" label="Cash Amount" value={splitPayment.cashAmount} onChange={(e) => setSplitPayment({ ...splitPayment, cashAmount: e.target.value })} inputProps={{ min: 0 }} /></Grid>
-            <Grid size={{ xs: 12, sm: 4 }}><TextField fullWidth size="small" type="number" label="UPI Amount" value={splitPayment.upiAmount} onChange={(e) => setSplitPayment({ ...splitPayment, upiAmount: e.target.value })} inputProps={{ min: 0 }} /></Grid>
-            <Grid size={{ xs: 12, sm: 4 }}><TextField fullWidth size="small" type="number" label="Card Amount" value={splitPayment.cardAmount} onChange={(e) => setSplitPayment({ ...splitPayment, cardAmount: e.target.value })} inputProps={{ min: 0 }} helperText={`Split total: ₹${splitPaymentTotal.toFixed(2)} / ₹${total.toFixed(2)}`} /></Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Cash Amount"
+                value={splitPayment.cashAmount}
+                onChange={(e) =>
+                  setSplitPayment({
+                    ...splitPayment,
+                    cashAmount: e.target.value,
+                  })
+                }
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="UPI Amount"
+                value={splitPayment.upiAmount}
+                onChange={(e) =>
+                  setSplitPayment({
+                    ...splitPayment,
+                    upiAmount: e.target.value,
+                  })
+                }
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Card Amount"
+                value={splitPayment.cardAmount}
+                onChange={(e) =>
+                  setSplitPayment({
+                    ...splitPayment,
+                    cardAmount: e.target.value,
+                  })
+                }
+                inputProps={{ min: 0 }}
+                helperText={`Split total: ₹${splitPaymentTotal.toFixed(2)} / ₹${total.toFixed(2)}`}
+              />
+            </Grid>
           </Grid>
         )}
         {/* ================= FEE ESTIMATION & QR SCANNER & ACTION BUTTONS ================= */}

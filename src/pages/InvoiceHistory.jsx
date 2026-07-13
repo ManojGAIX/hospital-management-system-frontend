@@ -324,13 +324,25 @@ export default function InvoiceHistory() {
     // TABLE
     // ==========================================
 
-    const body = items.map((item, index) => [
-      index + 1,
-      item.itemName,
-      item.quantity,
-      Number(item.unitPrice).toFixed(2),
-      Number(item.subtotal).toFixed(2),
-    ]);
+    const filteredItems = (items || []).filter(
+      (item) =>
+        item.itemType?.toUpperCase() !== "ADMISSION" &&
+        item.itemName !== "Admission Fee"
+    );
+
+    const body = filteredItems.map((item, index) => {
+      const isBed = item.itemType?.toUpperCase() === "BED";
+      const displayName = isBed
+        ? `Bed Charges${item.itemName ? ` (${item.itemName})` : ""}`
+        : item.itemName;
+      return [
+        index + 1,
+        displayName,
+        item.quantity,
+        Number(item.unitPrice || 0).toFixed(2),
+        Number(item.subtotal || 0).toFixed(2),
+      ];
+    });
 
     autoTable(doc, {
       startY: y + 10,
@@ -378,20 +390,22 @@ export default function InvoiceHistory() {
     // TOTALS
     // ==========================================
 
-    const finalY = doc.lastAutoTable.finalY + 15;
+    let finalY = doc.lastAutoTable.finalY + 15;
 
-    // Calculate subtotal before discount
-    //   const subtotalAmount = inv.totalAmount + Number(inv.discount || 0);
+    if (finalY + 50 > 280) {
+      doc.addPage();
+      finalY = 20;
+    }
 
     doc.setFontSize(11);
     doc.setTextColor(0);
 
-    doc.text(`Subtotal : Rs. ${Number(inv.subtotal).toFixed(2)}`, 195, finalY, {
+    doc.text(`Subtotal : Rs. ${Number(inv.subtotal || 0).toFixed(2)}`, 195, finalY, {
       align: "right",
     });
 
     doc.text(
-      `Discount : Rs. ${Number(inv.discount).toFixed(2)}`,
+      `Discount : Rs. ${Number(inv.discount || 0).toFixed(2)}`,
       195,
       finalY + 8,
       { align: "right" },
@@ -402,7 +416,7 @@ export default function InvoiceHistory() {
     doc.setTextColor(30, 58, 138);
 
     doc.text(
-      `Grand Total : Rs. ${Number(inv.totalAmount).toFixed(2)}`,
+      `Grand Total : Rs. ${Number(inv.totalAmount || 0).toFixed(2)}`,
       195,
       finalY + 20,
       { align: "right" },
@@ -535,7 +549,7 @@ export default function InvoiceHistory() {
               }}
             />
 
-            <Chip
+            {/* <Chip
               icon={<CurrencyRupeeIcon />}
               label={`₹${totalRevenue.toLocaleString("en-IN")}`}
               sx={{
@@ -555,9 +569,9 @@ export default function InvoiceHistory() {
                   color: "#BBF7D0",
                 },
               }}
-            />
+            /> */}
 
-            <Chip
+            {/* <Chip
               icon={<CurrencyRupeeIcon />}
               label={`Today Cash: ₹${todayCashRevenue.toLocaleString("en-IN")}`}
               sx={{
@@ -577,9 +591,9 @@ export default function InvoiceHistory() {
                   color: "#FDE68A",
                 },
               }}
-            />
+            /> */}
 
-            <Chip
+            {/* <Chip
               icon={<CurrencyRupeeIcon />}
               label={`Today UPI: ₹${todayUpiRevenue.toLocaleString("en-IN")}`}
               sx={{
@@ -599,7 +613,7 @@ export default function InvoiceHistory() {
                   color: "#FDE68A",
                 },
               }}
-            />
+            /> */}
           </Box>
         </Box>
       </Paper>

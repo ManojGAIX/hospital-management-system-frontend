@@ -352,7 +352,12 @@ export default function PharmacyHistory() {
     // TOTALS
     // ==========================
 
-    const finalY = doc.lastAutoTable.finalY + 15;
+    let finalY = doc.lastAutoTable.finalY + 15;
+
+    if (finalY + 68 > 280) {
+      doc.addPage();
+      finalY = 20;
+    }
 
     const subtotal = Number(billData.subtotal || 0);
     const gstAmount = Number(billData.gstAmount || 0);
@@ -512,7 +517,7 @@ export default function PharmacyHistory() {
               }}
             />
 
-            <Chip
+            {/* <Chip
               icon={<CurrencyRupeeIcon />}
               label={`Total Revenue: ₹${totalRevenue.toLocaleString("en-IN")} `}
               sx={{
@@ -532,9 +537,9 @@ export default function PharmacyHistory() {
                   color: "#BBF7D0",
                 },
               }}
-            />
+            /> */}
 
-            <Chip
+            {/* <Chip
               icon={<TodayIcon />}
               label={`Today Bills: ${todayBillsCount} `}
               sx={{
@@ -554,9 +559,9 @@ export default function PharmacyHistory() {
                   color: "#FDE68A",
                 },
               }}
-            />
+            /> */}
 
-            <Chip
+            {/* <Chip
               icon={<TodayIcon />}
               label={`Today : ₹${todayRevenue.toLocaleString("en-IN")}`}
               sx={{
@@ -576,9 +581,9 @@ export default function PharmacyHistory() {
                   color: "#FDE68A",
                 },
               }}
-            />
+            /> */}
 
-            <Chip
+            {/* <Chip
               icon={<TodayIcon />}
               label={`Today Cash: ₹${todayCashRevenue.toLocaleString("en-IN")}`}
               sx={{
@@ -598,9 +603,9 @@ export default function PharmacyHistory() {
                   color: "#FDE68A",
                 },
               }}
-            />
+            /> */}
 
-            <Chip
+            {/* <Chip
               icon={<TodayIcon />}
               label={`Today UPI: ₹${todayUpiRevenue.toLocaleString("en-IN")}`}
               sx={{
@@ -620,7 +625,7 @@ export default function PharmacyHistory() {
                   color: "#FDE68A",
                 },
               }}
-            />
+            /> */}
           </Box>
         </Box>
       </Paper>

@@ -44,7 +44,7 @@ export default function CurrentStockRegister() {
   }, []);
 
   const filtered = stocks.filter((s) =>
-    [s.medicineName, s.batchNo]
+    [s.medicineName, s.batchNo, s.itemCode]
       .join(" ")
       .toLowerCase()
       .includes(search.toLowerCase()),
@@ -61,12 +61,14 @@ export default function CurrentStockRegister() {
 
   const exportExcel = () => {
     const excelData = filtered.map((item) => ({
+      "Item Code": item.itemCode || "N/A",
       Medicine: item.medicineName,
       Batch: item.batchNo,
       Expiry: item.expiryDate,
       StockQty: item.stockQty,
       PurchaseRate: item.purchaseRate,
       MRP: item.mrp,
+      "GST %": `${item.gstPercent || 0}%`,
       StockValue: item.stockValue,
     }));
 
@@ -89,12 +91,14 @@ export default function CurrentStockRegister() {
         return diff > 0 && diff <= 90;
       })
       .map((item) => ({
+        "Item Code": item.itemCode || "N/A",
         Medicine: item.medicineName,
         Batch: item.batchNo,
         Expiry: item.expiryDate,
         StockQty: item.stockQty,
         PurchaseRate: item.purchaseRate,
         MRP: item.mrp,
+        "GST %": `${item.gstPercent || 0}%`,
         StockValue: item.stockValue,
       }));
 
@@ -117,14 +121,16 @@ export default function CurrentStockRegister() {
     autoTable(doc, {
       startY: 25,
 
-      head: [["Medicine", "Batch", "Expiry", "Qty", "MRP", "Value"]],
+      head: [["Item Code", "Medicine", "Batch", "Expiry", "Qty", "MRP", "GST", "Value"]],
 
       body: filtered.map((item) => [
+        item.itemCode || "N/A",
         item.medicineName,
         item.batchNo,
         item.expiryDate,
         item.stockQty,
         item.mrp,
+        `${item.gstPercent || 0}%`,
         item.stockValue,
       ]),
     });
@@ -269,12 +275,14 @@ export default function CurrentStockRegister() {
               >
                 {[
                   "SI No",
+                  "Item Code",
                   "Medicine",
                   "Batch",
                   "Expiry",
                   "Stock Qty",
                   "Purchase",
                   "MRP",
+                  "GST %",
                   "Stock Value",
                   "Status",
                 ].map((h) => (
@@ -321,6 +329,9 @@ export default function CurrentStockRegister() {
                 return (
                   <TableRow key={index}>
                     <TableCell>{page * rowsPerPage + index + 1}</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", color: "#475569" }}>
+                      {row.itemCode || "N/A"}
+                    </TableCell>
                     <TableCell>{row.medicineName}</TableCell>
                     <TableCell>{row.batchNo}</TableCell>
                     <TableCell>{row.expiryDate}</TableCell>
@@ -329,6 +340,15 @@ export default function CurrentStockRegister() {
                       ₹{Number(row.purchaseRate).toFixed(2)}
                     </TableCell>
                     <TableCell>₹{Number(row.mrp).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={`${row.gstPercent || 0}%`}
+                        size="small"
+                        variant="outlined"
+                        color="info"
+                        sx={{ fontWeight: "bold" }}
+                      />
+                    </TableCell>
                     <TableCell>₹{Number(row.stockValue).toFixed(2)}</TableCell>
                     <TableCell>
                       <Chip label={status} color={color} size="small" />
