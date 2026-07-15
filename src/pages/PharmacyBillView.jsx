@@ -19,6 +19,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import hospitalLogo from "/logo.png";
+import { getMedicineLabel } from "../utils/medicineFormatter";
 
 export default function PharmacyBillView() {
   const { id } = useParams();
@@ -68,7 +69,7 @@ export default function PharmacyBillView() {
 
     const body = items.map((i, index) => [
       index + 1,
-      i.medicineName,
+      getMedicineLabel(i) || i.medicineName,
       i.quantity,
       i.unitPrice.toFixed(2),
       `${i.gstPercent}%`,
@@ -136,7 +137,7 @@ export default function PharmacyBillView() {
               <TableRow key={index}>
                 <TableCell>{index + 1}</TableCell>
 
-                <TableCell>{i.medicineName}</TableCell>
+                <TableCell>{getMedicineLabel(i) || i.medicineName}</TableCell>
 
                 <TableCell>{i.quantity}</TableCell>
 

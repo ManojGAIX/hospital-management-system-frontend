@@ -27,11 +27,13 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
+import EditIcon from "@mui/icons-material/Edit";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { getMedicineLabel } from "../utils/medicineFormatter";
 
-export default function PurchaseRegister() {
+export default function PurchaseRegister({ onEdit, refreshKey }) {
   const API = "/api";
 
   const [purchases, setPurchases] = useState([]);
@@ -45,6 +47,10 @@ export default function PurchaseRegister() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [open, setOpen] = useState(false);
+
+  const [editOpen, setEditOpen] = useState(false);
+
+  const [editPurchase, setEditPurchase] = useState(null);
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -62,7 +68,8 @@ export default function PurchaseRegister() {
 
   useEffect(() => {
     loadPurchases();
-  }, []);
+    // reload when parent signals
+  }, [refreshKey]);
 
   const filtered = purchases.filter((p) => {
     const matchesSearch = [p.grnNumber, p.supplierName, p.billNumber]
@@ -88,6 +95,35 @@ export default function PurchaseRegister() {
       setItems(res.data);
 
       setOpen(true);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openEdit = (purchase) => {
+    setEditPurchase({
+      id: purchase.id,
+      grnNumber: purchase.grnNumber,
+      supplierName: purchase.supplierName || "",
+      billNumber: purchase.billNumber || "",
+      billDate: purchase.billDate || "",
+      finalAmount: purchase.finalAmount || 0,
+    });
+
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editPurchase) return;
+
+    try {
+      await api.put(`${API}/pharmacy-purchase/${editPurchase.id}`, editPurchase);
+
+      setEditOpen(false);
+
+      setEditPurchase(null);
+
+      loadPurchases();
     } catch (err) {
       console.error(err);
     }
@@ -133,7 +169,7 @@ export default function PurchaseRegister() {
         head: [["Medicine", "Batch", "Qty", "Rate", "Amount"]],
 
         body: items.map((i) => [
-          i.medicineName,
+          getMedicineLabel(i) || i.medicineName,
           i.batchNo,
           i.quantity,
           i.purchaseRate,
@@ -393,6 +429,13 @@ export default function PurchaseRegister() {
                       </IconButton>
 
                       <IconButton
+                        color="info"
+                        onClick={() => (onEdit ? onEdit(row) : openEdit(row))}
+                      >
+                        <EditIcon />
+                      </IconButton>
+
+                      <IconButton
                         color="error"
                         onClick={() => deleteGRN(row.id)}
                       >
@@ -459,7 +502,7 @@ export default function PurchaseRegister() {
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.medicineName}</TableCell>
+                    <TableCell>{getMedicineLabel(item) || item.medicineName}</TableCell>
 
                     <TableCell>{item.batchNo}</TableCell>
 
@@ -479,6 +522,51 @@ export default function PurchaseRegister() {
               </TableBody>
             </Table>
           </TableContainer>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: "#1E40AF" }}>Edit GRN</DialogTitle>
+
+        <DialogContent>
+          {editPurchase && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+              <TextField label="GRN No" value={editPurchase.grnNumber} disabled />
+
+              <TextField
+                label="Supplier"
+                value={editPurchase.supplierName}
+                onChange={(e) => setEditPurchase({ ...editPurchase, supplierName: e.target.value })}
+              />
+
+              <TextField
+                label="Bill No"
+                value={editPurchase.billNumber}
+                onChange={(e) => setEditPurchase({ ...editPurchase, billNumber: e.target.value })}
+              />
+
+              <TextField
+                label="Bill Date"
+                type="date"
+                value={editPurchase.billDate}
+                onChange={(e) => setEditPurchase({ ...editPurchase, billDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+
+              <TextField
+                label="Final Amount"
+                type="number"
+                value={editPurchase.finalAmount}
+                onChange={(e) => setEditPurchase({ ...editPurchase, finalAmount: e.target.value })}
+              />
+
+              <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 1 }}>
+                <Button onClick={() => { setEditOpen(false); setEditPurchase(null); }}>Cancel</Button>
+
+                <Button variant="contained" onClick={saveEdit}>Save</Button>
+              </Box>
+            </Box>
+          )}
         </DialogContent>
       </Dialog>
     </Box>

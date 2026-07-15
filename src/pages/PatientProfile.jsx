@@ -51,6 +51,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import hospitalLogo from "/logo.png";
+import { getMedicineLabel } from "../utils/medicineFormatter";
 
 const palette = {
   ink: "#0f172a",
@@ -432,7 +433,7 @@ export default function PatientProfile() {
           head: [["#", "MEDICINE", "DOSAGE", "DURATION", "INSTRUCTIONS"]],
           body: prescription.items?.map((item, index) => [
             index + 1,
-            item.medicineName,
+            getMedicineLabel(item) || item.medicineName || "",
             item.dosage,
             `${item.days} Day(s)`,
             item.instructions || "-",
@@ -770,7 +771,7 @@ export default function PatientProfile() {
           prescriptionItems.push([
             p.prescriptionDate || "-",
             p.doctorName || "-",
-            item.medicineName || "-",
+            getMedicineLabel(item) || item.medicineName || "-",
             item.dosage || "-",
             `${item.days || "-"} Days`,
             item.instructions || "-"
@@ -1406,7 +1407,7 @@ export default function PatientProfile() {
                                   {p.items && p.items.length > 0 ? (
                                     p.items.map((item, idx) => (
                                       <TableRow key={idx}>
-                                        <TableCell>{item.medicineName}</TableCell>
+                                        <TableCell>{getMedicineLabel(item) || item.medicineName}</TableCell>
                                         <TableCell>{item.dosage}</TableCell>
                                         <TableCell>{item.days} Day(s)</TableCell>
                                         <TableCell>{item.instructions || "-"}</TableCell>

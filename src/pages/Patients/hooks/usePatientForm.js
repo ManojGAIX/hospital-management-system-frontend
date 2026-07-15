@@ -123,9 +123,14 @@ export default function usePatientForm({
     try {
       setLoading(true);
 
+      // Strip empty-string values so optional fields are sent as absent/null
+      const payload = Object.fromEntries(
+        Object.entries(formData).filter(([, v]) => v !== "")
+      );
+
       const response = editingPatient?.id
-        ? await updatePatient(editingPatient.id, formData)
-        : await createPatient(formData);
+        ? await updatePatient(editingPatient.id, payload)
+        : await createPatient(payload);
 
       refreshPatients();
 
@@ -138,8 +143,46 @@ export default function usePatientForm({
       return response.data;
     } catch (error) {
       console.error(error);
-      const errorMsg = error.response?.data?.message || error.message || "Failed to save patient";
-      alert("Error: " + errorMsg);
+
+      const resp = error.response?.data;
+
+      // Attempt to map backend validation errors to individual form fields
+      const fieldErrors = {};
+
+      // Common Spring-style validation payloads: array of errors
+      if (Array.isArray(resp?.errors) && resp.errors.length) {
+        resp.errors.forEach((e) => {
+          const field = e.field || e.name || e.property || e.param;
+          const msg = e.defaultMessage || e.message || String(e);
+          if (field) fieldErrors[field] = msg;
+        });
+      }
+
+      // Some APIs use 'fieldErrors'
+      else if (Array.isArray(resp?.fieldErrors) && resp.fieldErrors.length) {
+        resp.fieldErrors.forEach((e) => {
+          const field = e.field || e.name || e.property;
+          const msg = e.defaultMessage || e.message || String(e);
+          if (field) fieldErrors[field] = msg;
+        });
+      }
+
+      // Fallback: try to extract "field 'name' ... default message [Message]" patterns
+      else if (typeof resp?.message === "string") {
+        const regex = /field '([a-zA-Z0-9_]+)'[\s\S]*?default message \[([^\]]+)\]/g;
+        let match;
+        while ((match = regex.exec(resp.message)) !== null) {
+          fieldErrors[match[1]] = match[2];
+        }
+      }
+
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...fieldErrors }));
+      } else {
+        const errorMsg = resp?.message || error.message || "Failed to save patient";
+        alert("Error: " + errorMsg);
+      }
+
       return null;
     } finally {
       setLoading(false);

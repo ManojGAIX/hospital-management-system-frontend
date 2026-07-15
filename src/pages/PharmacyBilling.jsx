@@ -56,6 +56,7 @@ import autoTable from "jspdf-autotable";
 
 import { savePharmacyBill } from "../api/pharmacyApi";
 import { formatDate } from "../utils/dateFormatter";
+import { getMedicineLabel } from "../utils/medicineFormatter";
 
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
@@ -307,7 +308,15 @@ export default function PharmacyBilling() {
       } else if (searchBy === "genericName") {
         return (o.genericName || "").toLowerCase().includes(inputValue);
       } else {
-        return (o.medicineName || "").toLowerCase().includes(inputValue);
+        return [
+          getMedicineLabel(o) || "",
+          o.dosageType || "",
+          o.medicineName || "",
+          o.genericName || "",
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(inputValue);
       }
     });
   };
@@ -469,6 +478,9 @@ export default function PharmacyBilling() {
 
           medicineName: p.medicineName,
 
+          medicineLabel:
+            getMedicineLabel(medicineMaster) || p.medicineName || "",
+
           batchNo,
 
           expiryDate,
@@ -479,7 +491,11 @@ export default function PharmacyBilling() {
 
           unitPrice,
 
-          gstPercent: medicineMaster?.gstPercent !== undefined && medicineMaster?.gstPercent !== null ? medicineMaster.gstPercent : 0,
+          gstPercent:
+            medicineMaster?.gstPercent !== undefined &&
+            medicineMaster?.gstPercent !== null
+              ? medicineMaster.gstPercent
+              : 0,
 
           subtotal: unitPrice * finalQty,
         };
@@ -577,6 +593,10 @@ export default function PharmacyBilling() {
 
         medicineName: medicine.medicineName,
 
+        medicineLabel: getMedicineLabel(medicine),
+
+        dosageType: medicine.dosageType || "",
+
         batchNo: medicine.batchNo || "",
 
         expiryDate: medicine.expiryDate || "",
@@ -587,7 +607,10 @@ export default function PharmacyBilling() {
 
         unitPrice: medicine.price || 0,
 
-        gstPercent: medicine.gstPercent !== undefined && medicine.gstPercent !== null ? medicine.gstPercent : 0,
+        gstPercent:
+          medicine.gstPercent !== undefined && medicine.gstPercent !== null
+            ? medicine.gstPercent
+            : 0,
 
         subtotal,
       };
@@ -714,6 +737,8 @@ export default function PharmacyBilling() {
           medicineId: item.medicineId,
 
           medicineName: item.medicineName,
+
+          medicineLabel: getMedicineLabel(item) || item.medicineName,
 
           quantity: item.quantity,
 
@@ -1048,7 +1073,7 @@ export default function PharmacyBilling() {
       body: cart.map((item, index) => [
         index + 1,
 
-        item.medicineName,
+        item.medicineLabel || item.medicineName,
 
         `${item.batchNo || "-"}\nExp: ${
           formatExpiryDate(item.expiryDate) || "-"
@@ -1510,7 +1535,7 @@ export default function PharmacyBilling() {
                       setSelectedMedicineId(value?.id || "")
                     }
                     filterOptions={filterMedicineOptions}
-                    getOptionLabel={(o) => o.medicineName || ""}
+                    getOptionLabel={(o) => getMedicineLabel(o) || ""}
                     sx={{
                       minWidth: 300,
                       flexGrow: 1,
@@ -1533,7 +1558,7 @@ export default function PharmacyBilling() {
                           fontWeight={700}
                           color="#0F172A"
                         >
-                          {option.medicineName}
+                          {getMedicineLabel(option)}
                           {option.genericName && (
                             <Typography
                               variant="caption"
@@ -1668,7 +1693,9 @@ export default function PharmacyBilling() {
                       {cart.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell>{index + 1}</TableCell>
-                          <TableCell>{item.medicineName}</TableCell>
+                          <TableCell>
+                            {getMedicineLabel(item) || item.medicineName}
+                          </TableCell>
                           <TableCell>
                             <Typography variant="body2">
                               {item.batchNo}
@@ -1976,14 +2003,14 @@ export default function PharmacyBilling() {
           }}
         >
           {/* STATISTICS CARD */}
-         <Card
+          <Card
             sx={{
-			        borderRadius: "16px",
+              borderRadius: "16px",
               background: "linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)",
               color: "#fff",
               boxShadow: "0 10px 25px rgba(30, 58, 138, 0.15)",
               mb: 3,
-			  
+
               transform: showStats ? "translateX(0)" : "translateX(110%)",
 
               transition: "transform .35s ease",
@@ -2235,7 +2262,7 @@ export default function PharmacyBilling() {
                             noWrap
                             sx={{ maxWidth: "140px" }}
                           >
-                            {m.medicineName}
+                            {getMedicineLabel(m) || m.medicineName}
                           </Typography>
                           <Chip
                             label={`${m.stockQuantity || 0} left`}
@@ -2266,7 +2293,7 @@ export default function PharmacyBilling() {
                               noWrap
                               sx={{ maxWidth: "140px" }}
                             >
-                              {m.medicineName}
+                               {getMedicineLabel(m) || m.medicineName}
                             </Typography>
                             <Typography
                               variant="caption"
@@ -2510,7 +2537,7 @@ export default function PharmacyBilling() {
                 {cart.map((item, idx) => (
                   <TableRow key={idx}>
                     <TableCell sx={{ color: "#000" }}>
-                      {item.medicineName}
+                      {getMedicineLabel(item) || item.medicineName}
                     </TableCell>
                     <TableCell sx={{ color: "#000" }} align="right">
                       {item.quantity}

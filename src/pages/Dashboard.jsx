@@ -44,6 +44,7 @@ import { getHrAttendance, getHrDashboard, getHrLeaves } from "../api/hrApi";
 import { getLowStockMedicines } from "../api/medicineApi";
 import { getPatients } from "../api/patientApi";
 import api from "../services/api";
+import { getMedicineLabel } from "../utils/medicineFormatter";
 
 const palette = {
   ink: "#0f172a",
@@ -1176,7 +1177,7 @@ export default function Dashboard() {
                     return (
                       <TableRow key={medicine.id || index} hover>
                         <TableCell sx={{ fontWeight: 800 }}>
-                          {medicine.medicineName}
+                          {getMedicineLabel(medicine) || medicine.medicineName}
                         </TableCell>
                         <TableCell
                           sx={{

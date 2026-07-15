@@ -152,7 +152,7 @@ const menuGroups = [
       { label: "Medicines", path: "/medicines" },
       { label: "Suppliers", path: "/SupplierMaster" },
       { label: "GRN", path: "/PharmacyPurchase" },
-      { label: "Purchase Register", path: "/PurchaseRegister" },
+      // { label: "Purchase Register", path: "/PurchaseRegister" },
       { label: "Current Stock", path: "/CurrentStockRegister" },
       { label: "Purchase Return", path: "/PurchaseReturn" },
     ],

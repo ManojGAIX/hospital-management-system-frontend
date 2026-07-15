@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import api from "../services/api";
+import { getMedicineLabel } from "../utils/medicineFormatter";
 
 import {
   Box,
@@ -16,6 +17,7 @@ import {
   TablePagination,
   Chip,
   Button,
+  MenuItem,
 } from "@mui/material";
 
 import * as XLSX from "xlsx";
@@ -28,6 +30,7 @@ export default function CurrentStockRegister() {
   const [stocks, setStocks] = useState([]);
 
   const [search, setSearch] = useState("");
+  const [reportType, setReportType] = useState("all");
 
   const loadStock = async () => {
     try {
@@ -62,7 +65,7 @@ export default function CurrentStockRegister() {
   const exportExcel = () => {
     const excelData = filtered.map((item) => ({
       "Item Code": item.itemCode || "N/A",
-      Medicine: item.medicineName,
+      Medicine: getMedicineLabel(item) || item.medicineName,
       Batch: item.batchNo,
       Expiry: item.expiryDate,
       StockQty: item.stockQty,
@@ -92,7 +95,7 @@ export default function CurrentStockRegister() {
       })
       .map((item) => ({
         "Item Code": item.itemCode || "N/A",
-        Medicine: item.medicineName,
+        Medicine: getMedicineLabel(item) || item.medicineName,
         Batch: item.batchNo,
         Expiry: item.expiryDate,
         StockQty: item.stockQty,
@@ -111,6 +114,91 @@ export default function CurrentStockRegister() {
     XLSX.writeFile(workbook, "NearExpiryItemsReport.xlsx");
   };
 
+  const getReportItems = () => {
+    if (reportType === "expiry") {
+      return filtered.filter((item) => {
+        const exp = new Date(item.expiryDate);
+        const diff = (exp - new Date()) / (1000 * 60 * 60 * 24);
+        return diff > 0 && diff <= 90;
+      });
+    }
+
+    if (reportType === "lowStock") {
+      return filtered.filter((item) => Number(item.stockQty) < 10);
+    }
+
+    if (reportType === "expired") {
+      return filtered.filter((item) => {
+        const exp = new Date(item.expiryDate);
+        return exp < new Date();
+      });
+    }
+
+    return filtered;
+  };
+
+  const getReportLabel = () => {
+    if (reportType === "expiry") return "Near Expiry Items";
+    if (reportType === "lowStock") return "Low Stock Items";
+    if (reportType === "expired") return "Expired Items List";
+    return "Current Stock Register";
+  };
+
+  const exportReport = () => {
+    const reportItems = getReportItems();
+    const excelData = reportItems.map((item) => ({
+      "Item Code": item.itemCode || "N/A",
+      Medicine: getMedicineLabel(item) || item.medicineName,
+      StockQty: item.stockQty,
+      PurchaseRate: item.purchaseRate,
+      MRP: item.mrp,
+      "GST %": `${item.gstPercent || 0}%`,
+      StockValue: item.stockValue,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+    XLSX.writeFile(workbook, `${getReportLabel().replace(/\s+/g, "")}.xlsx`);
+  };
+
+  const printReport = () => {
+    const reportItems = getReportItems();
+    const doc = new jsPDF();
+    const title = getReportLabel();
+
+    doc.setFontSize(18);
+    doc.text(title, 14, 15);
+
+    autoTable(doc, {
+      startY: 25,
+      head: [
+        [
+          "Item Code",
+          "Medicine",
+          "Batch",
+          "Expiry",
+          "Qty",
+          "MRP",
+          "GST",
+          "Value",
+        ],
+      ],
+      body: reportItems.map((item) => [
+        item.itemCode || "N/A",
+        getMedicineLabel(item) || item.medicineName,
+        item.batchNo,
+        item.expiryDate,
+        item.stockQty,
+        item.mrp,
+        `${item.gstPercent || 0}%`,
+        item.stockValue,
+      ]),
+    });
+
+    doc.save(`${title.replace(/\s+/g, "")}.pdf`);
+  };
+
   const printStockReport = () => {
     const doc = new jsPDF();
 
@@ -121,11 +209,22 @@ export default function CurrentStockRegister() {
     autoTable(doc, {
       startY: 25,
 
-      head: [["Item Code", "Medicine", "Batch", "Expiry", "Qty", "MRP", "GST", "Value"]],
+      head: [
+        [
+          "Item Code",
+          "Medicine",
+          "Batch",
+          "Expiry",
+          "Qty",
+          "MRP",
+          "GST",
+          "Value",
+        ],
+      ],
 
       body: filtered.map((item) => [
         item.itemCode || "N/A",
-        item.medicineName,
+        getMedicineLabel(item) || item.medicineName,
         item.batchNo,
         item.expiryDate,
         item.stockQty,
@@ -186,25 +285,53 @@ export default function CurrentStockRegister() {
           gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
           gap: 2,
           mb: 3,
+          alignItems: "stretch",
         }}
       >
-        <Paper sx={{ p: 3, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            background: "rgba(255,255,255,0.72)",
+            backdropFilter: "blur(18px)",
+            border: "1px solid rgba(255,255,255,0.7)",
+            boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
+          }}
+        >
           <Typography color="text.secondary">Total Medicines</Typography>
 
-          <Typography variant="h5" fontWeight={700}>
+          <Typography variant="h5" fontWeight={700} color="primary">
             {filtered.length}
           </Typography>
         </Paper>
 
-        <Paper sx={{ p: 3, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            background: "rgba(236, 72, 153, 0.12)",
+            backdropFilter: "blur(18px)",
+            border: "1px solid rgba(236, 72, 153, 0.25)",
+            boxShadow: "0 18px 40px rgba(236,72,153,0.12)",
+          }}
+        >
           <Typography color="text.secondary">Total Stock Qty</Typography>
 
-          <Typography variant="h5" fontWeight={700} color="primary">
+          <Typography variant="h5" fontWeight={700} color="secondary">
             {filtered.reduce((sum, s) => sum + Number(s.stockQty || 0), 0)}
           </Typography>
         </Paper>
 
-        <Paper sx={{ p: 3, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            background: "rgba(16, 185, 129, 0.12)",
+            backdropFilter: "blur(18px)",
+            border: "1px solid rgba(16, 185, 129, 0.25)",
+            boxShadow: "0 18px 40px rgba(16,185,129,0.12)",
+          }}
+        >
           <Typography color="text.secondary">Inventory Value</Typography>
 
           <Typography variant="h5" fontWeight={700} color="success.main">
@@ -215,15 +342,33 @@ export default function CurrentStockRegister() {
           </Typography>
         </Paper>
 
-        <Paper sx={{ p: 3, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            background: "rgba(251, 146, 60, 0.12)",
+            backdropFilter: "blur(18px)",
+            border: "1px solid rgba(251, 146, 60, 0.25)",
+            boxShadow: "0 18px 40px rgba(251,146,60,0.12)",
+          }}
+        >
           <Typography color="text.secondary">Low Stock Items</Typography>
 
-          <Typography variant="h5" fontWeight={700} color="error">
+          <Typography variant="h5" fontWeight={700} color="warning.main">
             {filtered.filter((s) => s.stockQty < 10).length}
           </Typography>
         </Paper>
 
-        <Paper sx={{ p: 3 }}>
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            background: "rgba(239, 68, 68, 0.12)",
+            backdropFilter: "blur(18px)",
+            border: "1px solid rgba(239, 68, 68, 0.25)",
+            boxShadow: "0 18px 40px rgba(239,68,68,0.12)",
+          }}
+        >
           <Typography color="error">Expired Medicines</Typography>
 
           <Typography variant="h4" fontWeight={700}>
@@ -231,7 +376,16 @@ export default function CurrentStockRegister() {
           </Typography>
         </Paper>
 
-        <Paper sx={{ p: 3 }}>
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            background: "rgba(234, 179, 8, 0.12)",
+            backdropFilter: "blur(18px)",
+            border: "1px solid rgba(234, 179, 8, 0.25)",
+            boxShadow: "0 18px 40px rgba(234,179,8,0.12)",
+          }}
+        >
           <Typography color="warning.main">Near Expiry</Typography>
 
           <Typography variant="h4" fontWeight={700}>
@@ -251,16 +405,32 @@ export default function CurrentStockRegister() {
       <Box
         sx={{
           display: "flex",
+          flexWrap: "wrap",
           gap: 2,
           mb: 3,
+          alignItems: "center",
         }}
       >
-        <Button variant="contained" onClick={exportExcel}>
-          Export Excel
+        <TextField
+          select
+          label="Report Type"
+          size="small"
+          value={reportType}
+          onChange={(e) => setReportType(e.target.value)}
+          sx={{ minWidth: 220, bgcolor: "background.paper" }}
+        >
+          <MenuItem value="all">Current Stock Register</MenuItem>
+          <MenuItem value="expiry">Near Expiry Items</MenuItem>
+          <MenuItem value="lowStock">Low Stock Items</MenuItem>
+          <MenuItem value="expired">Expired Items</MenuItem>
+        </TextField>
+
+        <Button variant="contained" onClick={exportReport}>
+          Export Report
         </Button>
 
-        <Button variant="contained" color="success" onClick={printStockReport}>
-          Print PDF
+        <Button variant="contained" color="success" onClick={printReport}>
+          Print Report
         </Button>
       </Box>
 
@@ -332,7 +502,9 @@ export default function CurrentStockRegister() {
                     <TableCell sx={{ fontWeight: "bold", color: "#475569" }}>
                       {row.itemCode || "N/A"}
                     </TableCell>
-                    <TableCell>{row.medicineName}</TableCell>
+                    <TableCell>
+                      {getMedicineLabel(row) || row.medicineName}
+                    </TableCell>
                     <TableCell>{row.batchNo}</TableCell>
                     <TableCell>{row.expiryDate}</TableCell>
                     <TableCell>{row.stockQty}</TableCell>
@@ -416,8 +588,9 @@ export default function CurrentStockRegister() {
               })
               .map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell>{item.medicineName}</TableCell>
-
+                  <TableCell>
+                    {getMedicineLabel(item) || item.medicineName}
+                  </TableCell>
                   <TableCell>{item.batchNo}</TableCell>
 
                   <TableCell>{item.expiryDate}</TableCell>

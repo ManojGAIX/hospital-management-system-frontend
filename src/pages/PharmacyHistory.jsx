@@ -40,6 +40,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import hospitalLogo from "/logo.png";
 import { useNavigate } from "react-router-dom";
+import { getMedicineLabel } from "../utils/medicineFormatter";
 
 export default function PharmacyHistory() {
   const navigate = useNavigate();
@@ -110,15 +111,22 @@ export default function PharmacyHistory() {
 
   const filteredReport = reportData.filter((item) => {
     const matchesSearch =
-      (item.patientName || "").toLowerCase().includes(reportSearch.toLowerCase()) ||
-      (item.medicineName || "").toLowerCase().includes(reportSearch.toLowerCase()) ||
-      (item.invoiceNumber || "").toLowerCase().includes(reportSearch.toLowerCase());
+      (item.patientName || "")
+        .toLowerCase()
+        .includes(reportSearch.toLowerCase()) ||
+      (item.medicineName || "")
+        .toLowerCase()
+        .includes(reportSearch.toLowerCase()) ||
+      (item.invoiceNumber || "")
+        .toLowerCase()
+        .includes(reportSearch.toLowerCase());
 
     const matchesStartDate =
       !reportStartDate || new Date(item.saleDate) >= new Date(reportStartDate);
 
     const matchesEndDate =
-      !reportEndDate || new Date(item.saleDate) <= new Date(reportEndDate + "T23:59:59");
+      !reportEndDate ||
+      new Date(item.saleDate) <= new Date(reportEndDate + "T23:59:59");
 
     return matchesSearch && matchesStartDate && matchesEndDate;
   });
@@ -325,7 +333,7 @@ export default function PharmacyHistory() {
 
     const body = (billData.items || []).map((item, index) => [
       index + 1,
-      item.medicineName || "",
+      getMedicineLabel(item) || item.medicineName || "",
       item.quantity || 0,
       Number(item.unitPrice || 0).toFixed(2),
       `${item.gstPercent || 0}%`,
@@ -825,46 +833,97 @@ export default function PharmacyHistory() {
           </Paper>
 
           {/* Table */}
-          <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid #E2E8F0", borderRadius: "16px" }}>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{ border: "1px solid #E2E8F0", borderRadius: "16px" }}
+          >
             <Table size="small">
-              <TableHead sx={{ background: "linear-gradient(90deg, #0F172A, #1E293B)" }}>
+              <TableHead
+                sx={{ background: "linear-gradient(90deg, #0F172A, #1E293B)" }}
+              >
                 <TableRow>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>SI No</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Invoice No</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Date</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Patient/Customer</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Medicine</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Batch</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Expiry</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Qty</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Price</TableCell>
-                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>Subtotal</TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    SI No
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Invoice No
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Date
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Patient/Customer
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Medicine
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Batch
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Expiry
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Qty
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Price
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>
+                    Subtotal
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredReport.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                    <TableCell
+                      colSpan={10}
+                      align="center"
+                      sx={{ py: 6, color: "text.secondary" }}
+                    >
                       No matching records found.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredReport
-                    .slice(reportPage * reportRowsPerPage, reportPage * reportRowsPerPage + reportRowsPerPage)
+                    .slice(
+                      reportPage * reportRowsPerPage,
+                      reportPage * reportRowsPerPage + reportRowsPerPage,
+                    )
                     .map((item, idx) => (
-                      <TableRow key={idx} sx={{ "&:hover": { background: "#F8FAFC" } }}>
+                      <TableRow
+                        key={idx}
+                        sx={{ "&:hover": { background: "#F8FAFC" } }}
+                      >
                         <TableCell sx={{ textAlign: "center" }}>
                           {reportPage * reportRowsPerPage + idx + 1}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{item.invoiceNumber}</TableCell>
-                        <TableCell>
-                          {item.saleDate ? new Date(item.saleDate).toLocaleDateString() : "-"}
+                        <TableCell sx={{ fontWeight: 600 }}>
+                          {item.invoiceNumber}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 500 }}>{item.patientName}</TableCell>
-                        <TableCell>{item.medicineName}</TableCell>
+                        <TableCell>
+                          {item.saleDate
+                            ? new Date(item.saleDate).toLocaleDateString()
+                            : "-"}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500 }}>
+                          {item.patientName}
+                        </TableCell>
+                        <TableCell>
+                          {getMedicineLabel(item) || item.medicineName}
+                        </TableCell>
                         <TableCell>{item.batchNo || "-"}</TableCell>
                         <TableCell>
-                          {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }).toUpperCase() : "-"}
+                          {item.expiryDate
+                            ? new Date(item.expiryDate)
+                                .toLocaleDateString("en-US", {
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                                .toUpperCase()
+                            : "-"}
                         </TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>₹{item.unitPrice?.toFixed(2)}</TableCell>
